@@ -26,10 +26,12 @@ public static class Sms
         if (!enabled)
             return SmsSendResult.Skip("SMS is disabled in configuration");
 
+        var maskedPhone = MaskPhone(phoneNumber);
+
         var dryRun = cfg.GetValue<bool>("SmsBroadcast:DryRun");
         if (dryRun)
         {
-            logger.LogInformation("SMS DryRun: To={Phone} Message={Message}", phoneNumber, message);
+            logger.LogInformation("SMS DryRun: To={Phone}", maskedPhone);
             return SmsSendResult.Ok();
         }
 
@@ -51,8 +53,14 @@ public static class Sms
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "SMS send failed. Phone={Phone}", phoneNumber);
-            return SmsSendResult.Fail($"SMS send failed: {ex.Message}");
+            logger.LogError(ex, "SMS send failed. Phone={Phone}", maskedPhone);
+            return SmsSendResult.Fail("SMS send failed. Check server logs for details.");
         }
+    }
+
+    private static string MaskPhone(string phone)
+    {
+        if (phone.Length <= 4) return "****";
+        return new string('*', phone.Length - 4) + phone[^4..];
     }
 }

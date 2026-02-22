@@ -12,7 +12,9 @@ using Api.Features.Reports;
 using Api.Features.Schedules;
 using Api.Features.Services;
 using Dapper;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,7 +45,12 @@ builder.Services.AddSwaggerGen(opts =>
 });
 
 // --- JWT Authentication ---
-var jwtKey = builder.Configuration["Jwt:SecretKey"] ?? "";
+var jwtKey = builder.Configuration["Jwt:SecretKey"]
+    ?? throw new InvalidOperationException(
+        "Jwt:SecretKey is not configured. Use 'dotnet user-secrets set \"Jwt:SecretKey\" \"<min-32-chars>\"' to set it.");
+if (jwtKey.Length < 32)
+    throw new InvalidOperationException("Jwt:SecretKey must be at least 32 characters.");
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "zentech-biz";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "zentech-biz-clients";
 
@@ -58,13 +65,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtAudience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
-            ValidateIssuerSigningKey = !string.IsNullOrEmpty(jwtKey),
-            IssuerSigningKey = string.IsNullOrEmpty(jwtKey)
-                ? null
-                : new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 builder.Services.AddAuthorization();
+
+// --- Rate Limiting ---
+builder.Services.AddRateLimiter(opts =>
+{
+    opts.AddFixedWindowLimiter("auth-login", o =>
+    {
+        o.PermitLimit = 5;
+        o.Window = TimeSpan.FromMinutes(1);
+    });
+    opts.AddFixedWindowLimiter("ai-chat", o =>
+    {
+        o.PermitLimit = 10;
+        o.Window = TimeSpan.FromMinutes(1);
+    });
+    opts.RejectionStatusCode = 429;
+});
 
 // --- CORS ---
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -125,17 +146,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
 // --- Health Check ---
 app.MapGet("/health", async (IDbConnectionFactory db) =>
 {
-    var result = new Dictionary<string, object>
-    {
-        ["ok"] = true,
-        ["ts"] = DateTimeOffset.UtcNow
-    };
+    bool dbOk;
+    long latencyMs;
 
     try
     {
@@ -143,17 +162,17 @@ app.MapGet("/health", async (IDbConnectionFactory db) =>
         using var conn = await db.CreateAsync();
         await conn.ExecuteScalarAsync<int>("SELECT 1");
         sw.Stop();
-
-        result["db"] = new { ok = true, latencyMs = sw.ElapsedMilliseconds };
+        dbOk = true;
+        latencyMs = sw.ElapsedMilliseconds;
     }
     catch
     {
-        result["ok"] = false;
-        result["db"] = new { ok = false, latencyMs = -1 };
+        dbOk = false;
+        latencyMs = -1;
     }
 
-    var isHealthy = result["ok"] is true;
-    return isHealthy ? Results.Ok(result) : Results.Json(result, statusCode: 503);
+    var result = new { ok = dbOk, ts = DateTimeOffset.UtcNow, db = new { ok = dbOk, latencyMs } };
+    return dbOk ? Results.Ok(result) : Results.Json(result, statusCode: 503);
 })
 .WithTags("Health")
 .AllowAnonymous()

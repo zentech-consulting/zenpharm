@@ -16,6 +16,7 @@ public static class AuthEndpoints
             return result is not null ? Results.Ok(result) : Results.Unauthorized();
         })
         .AllowAnonymous()
+        .RequireRateLimiting("auth-login")
         .WithOpenApi(op => { op.Summary = "Authenticate with username and password"; return op; });
 
         g.MapPost("refresh", async Task<IResult> (RefreshTokenRequest req, IAuthManager mgr, CancellationToken ct) =>
@@ -24,6 +25,7 @@ public static class AuthEndpoints
             return result is not null ? Results.Ok(result) : Results.Unauthorized();
         })
         .AllowAnonymous()
+        .RequireRateLimiting("auth-login")
         .WithOpenApi(op => { op.Summary = "Refresh an expired access token"; return op; });
 
         g.MapPost("logout", async Task<IResult> (RefreshTokenRequest req, IAuthManager mgr, CancellationToken ct) =>

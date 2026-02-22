@@ -7,7 +7,7 @@ export default function ServicesPage() {
           Discover the services we offer. This page will be populated with your
           industry-specific service catalogue.
         </p>
-        <div className="rounded-xl border border-surface-dark bg-surface p-12 text-centre text-gray-500">
+        <div className="rounded-xl border border-surface-dark bg-surface p-12 text-center text-gray-500">
           Service catalogue coming soon — configure your industry package to populate this page.
         </div>
       </div>

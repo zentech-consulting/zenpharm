@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Send } from 'lucide-react'
 import { useState } from 'react'
@@ -19,11 +20,12 @@ export default function ContactPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ContactFormData>()
+  } = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+  })
 
-  const onSubmit = (data: ContactFormData) => {
+  const onSubmit = (_data: ContactFormData) => {
     // Contact form submission will be implemented with the notification module
-    console.info('Contact form submitted:', data.name)
     setSubmitted(true)
   }
 
@@ -57,7 +59,7 @@ export default function ContactPage() {
             <input
               id="name"
               type="text"
-              {...register('name', { required: 'Name is required' })}
+              {...register('name')}
               className="w-full rounded-lg border border-surface-dark px-4 py-3 text-sm transition-colors focus:border-accent focus:outline-none"
               placeholder="Your name"
             />
@@ -73,7 +75,7 @@ export default function ContactPage() {
             <input
               id="email"
               type="email"
-              {...register('email', { required: 'Email is required' })}
+              {...register('email')}
               className="w-full rounded-lg border border-surface-dark px-4 py-3 text-sm transition-colors focus:border-accent focus:outline-none"
               placeholder="you@example.com"
             />
@@ -102,7 +104,7 @@ export default function ContactPage() {
             <textarea
               id="message"
               rows={5}
-              {...register('message', { required: 'Message is required', minLength: { value: 10, message: 'At least 10 characters' } })}
+              {...register('message')}
               className="w-full rounded-lg border border-surface-dark px-4 py-3 text-sm transition-colors focus:border-accent focus:outline-none"
               placeholder="How can we help you?"
             />

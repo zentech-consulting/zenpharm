@@ -24,7 +24,7 @@
 - **更新**: 2026-02-21
 - **描述**: 从 SMCP + zentech-website 抽取通用代码，建立模板项目骨架
 - **子任务**:
-  1. [ ] 项目骨架 — .NET 8 API + React 19 前台 + React 18 后台
+  1. [x] 项目骨架 — .NET 8 API + React 19 前台 + React 18 后台 *(2026-02-22, 86 files, all build green)*
   2. [ ] 认证模块 — JWT + 角色权限 (从 SMCP 抽取)
   3. [ ] 客户管理 — 通用 Client CRUD (SMCP Customer 通用化)
   4. [ ] 服务/产品目录 — ServiceItem 抽象 (SMCP Product/Category)

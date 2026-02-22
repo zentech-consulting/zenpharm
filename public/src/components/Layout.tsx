@@ -45,7 +45,7 @@ export default function Layout() {
       </main>
 
       <footer className="border-t border-surface-dark bg-primary py-8 text-white">
-        <div className="mx-auto max-w-7xl px-6 text-centre text-sm opacity-70">
+        <div className="mx-auto max-w-7xl px-6 text-center text-sm opacity-70">
           &copy; {new Date().getFullYear()} Zentech Consulting. All rights reserved.
         </div>
       </footer>

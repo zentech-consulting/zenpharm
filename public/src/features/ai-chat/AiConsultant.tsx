@@ -17,7 +17,7 @@ export default function AiConsultant() {
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="flex h-80 items-center justify-center p-6 text-centre text-sm text-gray-500">
+          <div className="flex h-80 items-center justify-center p-6 text-center text-sm text-gray-500">
             AI chat interface coming soon.
             <br />
             Configure your AI knowledge base to enable this feature.
