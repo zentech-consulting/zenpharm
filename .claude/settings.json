@@ -1,0 +1,41 @@
+{
+  "plugins": [
+    "C:\\repos\\Grace\\.claude\\plugins\\code-review",
+    "C:\\repos\\Grace\\.claude\\plugins\\commit-commands",
+    "C:\\repos\\Grace\\.claude\\plugins\\security-guidance",
+    "C:\\repos\\Grace\\.claude\\plugins\\feature-dev"
+  ],
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Grep",
+      "Glob",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git stash *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet user-secrets *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx *)",
+      "Bash(ls *)",
+      "Bash(dir *)"
+    ],
+    "deny": [
+      "Bash(git push * main)",
+      "Bash(git push origin main)",
+      "Bash(gh pr merge *)",
+      "Bash(git push --force *)",
+      "Bash(git reset --hard *)"
+    ]
+  }
+}
