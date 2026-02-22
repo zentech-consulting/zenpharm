@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { logout } from '../api/auth'
 import { Layout, Menu, Button, theme } from 'antd'
 import {
   DashboardOutlined,
@@ -36,7 +37,12 @@ export default function AdminLayout() {
   const location = useLocation()
   const { token } = theme.useToken()
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch {
+      // Continue with client-side cleanup even if server call fails
+    }
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     navigate('/login')

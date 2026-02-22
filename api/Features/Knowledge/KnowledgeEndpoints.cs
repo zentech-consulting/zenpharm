@@ -27,7 +27,7 @@ public static class KnowledgeEndpoints
 
         g.MapGet("", async Task<IResult> (int? page, int? pageSize, string? category, IKnowledgeManager mgr, CancellationToken ct) =>
         {
-            var result = await mgr.ListAsync(page ?? 1, pageSize ?? 20, category, ct);
+            var result = await mgr.ListAsync(Math.Max(1, page ?? 1), Math.Clamp(pageSize ?? 20, 1, 100), category, ct);
             return Results.Ok(result);
         })
         .RequireAuthorization()

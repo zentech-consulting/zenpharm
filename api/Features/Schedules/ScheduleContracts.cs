@@ -19,6 +19,7 @@ public sealed record CreateScheduleRequest
     [MaxLength(50)]
     public string? Location { get; init; }
 
+    [MaxLength(2000)]
     public string? Notes { get; init; }
 }
 
@@ -33,6 +34,7 @@ public sealed record UpdateScheduleRequest
     [MaxLength(50)]
     public string? Location { get; init; }
 
+    [MaxLength(2000)]
     public string? Notes { get; init; }
 }
 

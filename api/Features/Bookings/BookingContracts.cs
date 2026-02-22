@@ -15,6 +15,7 @@ public sealed record CreateBookingRequest
     [Required]
     public DateTimeOffset StartTime { get; init; }
 
+    [MaxLength(2000)]
     public string? Notes { get; init; }
 }
 
@@ -28,6 +29,7 @@ public sealed record UpdateBookingRequest
     [Required, MaxLength(30)]
     public string Status { get; init; } = "confirmed";
 
+    [MaxLength(2000)]
     public string? Notes { get; init; }
 }
 

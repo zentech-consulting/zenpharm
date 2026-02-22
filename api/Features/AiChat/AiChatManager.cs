@@ -11,7 +11,7 @@ internal sealed class AiChatManager(
         var dryRun = cfg.GetValue<bool>("AiChat:DryRun");
         if (dryRun)
         {
-            logger.LogInformation("AiChat DryRun mode. Message={Message}", request.Message);
+            logger.LogInformation("AiChat DryRun mode. MessageLength={Length}", request.Message?.Length ?? 0);
             return Task.FromResult(new AiChatResponse(
                 Reply: "This is a dry-run response. AI chat is not yet connected.",
                 Model: "dry-run",
@@ -30,7 +30,7 @@ internal sealed class AiChatManager(
         var dryRun = cfg.GetValue<bool>("AiChat:DryRun");
         if (dryRun)
         {
-            logger.LogInformation("AiChat DryRun stream mode. Message={Message}", request.Message);
+            logger.LogInformation("AiChat DryRun stream mode. MessageLength={Length}", request.Message?.Length ?? 0);
             yield return new StreamEvent
             {
                 Type = "text",

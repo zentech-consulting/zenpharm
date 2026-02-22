@@ -165,8 +165,9 @@ app.MapGet("/health", async (IDbConnectionFactory db) =>
         dbOk = true;
         latencyMs = sw.ElapsedMilliseconds;
     }
-    catch
+    catch (Exception ex)
     {
+        app.Logger.LogWarning(ex, "Health check: database probe failed");
         dbOk = false;
         latencyMs = -1;
     }

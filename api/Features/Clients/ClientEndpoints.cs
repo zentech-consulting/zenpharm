@@ -26,7 +26,7 @@ public static class ClientEndpoints
 
         g.MapGet("", async Task<IResult> (int? page, int? pageSize, string? search, IClientManager mgr, CancellationToken ct) =>
         {
-            var result = await mgr.ListAsync(page ?? 1, pageSize ?? 20, search, ct);
+            var result = await mgr.ListAsync(Math.Max(1, page ?? 1), Math.Clamp(pageSize ?? 20, 1, 100), search, ct);
             return Results.Ok(result);
         })
         .WithOpenApi(op => { op.Summary = "List clients with pagination and search"; return op; });

@@ -26,7 +26,7 @@ public static class EmployeeEndpoints
 
         g.MapGet("", async Task<IResult> (int? page, int? pageSize, string? role, IEmployeeManager mgr, CancellationToken ct) =>
         {
-            var result = await mgr.ListAsync(page ?? 1, pageSize ?? 20, role, ct);
+            var result = await mgr.ListAsync(Math.Max(1, page ?? 1), Math.Clamp(pageSize ?? 20, 1, 100), role, ct);
             return Results.Ok(result);
         })
         .WithOpenApi(op => { op.Summary = "List employees with pagination"; return op; });

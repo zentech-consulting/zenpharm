@@ -16,6 +16,7 @@ public sealed record CreateClientRequest
     [MaxLength(20)]
     public string? Phone { get; init; }
 
+    [MaxLength(2000)]
     public string? Notes { get; init; }
 }
 
@@ -33,6 +34,7 @@ public sealed record UpdateClientRequest
     [MaxLength(20)]
     public string? Phone { get; init; }
 
+    [MaxLength(2000)]
     public string? Notes { get; init; }
 }
 

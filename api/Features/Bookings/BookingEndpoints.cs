@@ -27,7 +27,7 @@ public static class BookingEndpoints
 
         g.MapGet("", async Task<IResult> (int? page, int? pageSize, DateOnly? date, Guid? employeeId, IBookingManager mgr, CancellationToken ct) =>
         {
-            var result = await mgr.ListAsync(page ?? 1, pageSize ?? 20, date, employeeId, ct);
+            var result = await mgr.ListAsync(Math.Max(1, page ?? 1), Math.Clamp(pageSize ?? 20, 1, 100), date, employeeId, ct);
             return Results.Ok(result);
         })
         .RequireAuthorization()
