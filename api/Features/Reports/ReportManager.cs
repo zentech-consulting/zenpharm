@@ -1,6 +1,9 @@
+using Api.Common;
+
 namespace Api.Features.Reports;
 
 internal sealed class ReportManager(
+    ITenantDb db,
     ILogger<ReportManager> logger) : IReportManager
 {
     public Task<DashboardSummary> GetDashboardSummaryAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default)

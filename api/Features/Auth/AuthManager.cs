@@ -1,6 +1,11 @@
+using Api.Common;
+using Api.Common.Tenancy;
+
 namespace Api.Features.Auth;
 
 internal sealed class AuthManager(
+    ITenantDb db,
+    TenantContext? tenant,
     IConfiguration cfg,
     ILogger<AuthManager> logger) : IAuthManager
 {

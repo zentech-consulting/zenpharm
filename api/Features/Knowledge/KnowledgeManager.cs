@@ -1,6 +1,9 @@
+using Api.Common;
+
 namespace Api.Features.Knowledge;
 
 internal sealed class KnowledgeManager(
+    ITenantDb db,
     ILogger<KnowledgeManager> logger) : IKnowledgeManager
 {
     public Task<KnowledgeEntryDto> CreateAsync(CreateKnowledgeEntryRequest request, CancellationToken ct = default)

@@ -1,6 +1,9 @@
+using Api.Common;
+
 namespace Api.Features.Schedules;
 
 internal sealed class ScheduleManager(
+    ITenantDb db,
     ILogger<ScheduleManager> logger) : IScheduleManager
 {
     public Task<ScheduleDto> CreateAsync(CreateScheduleRequest request, CancellationToken ct = default)

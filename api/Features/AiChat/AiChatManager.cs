@@ -1,8 +1,10 @@
 using System.Runtime.CompilerServices;
+using Api.Common;
 
 namespace Api.Features.AiChat;
 
 internal sealed class AiChatManager(
+    ITenantDb db,
     IConfiguration cfg,
     ILogger<AiChatManager> logger) : IAiChatManager
 {

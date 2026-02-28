@@ -1,6 +1,9 @@
+using Api.Common;
+
 namespace Api.Features.Clients;
 
 internal sealed class ClientManager(
+    ITenantDb db,
     ILogger<ClientManager> logger) : IClientManager
 {
     public Task<ClientDto> CreateAsync(CreateClientRequest request, CancellationToken ct = default)

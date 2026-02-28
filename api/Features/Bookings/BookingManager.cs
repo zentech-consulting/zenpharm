@@ -1,6 +1,9 @@
+using Api.Common;
+
 namespace Api.Features.Bookings;
 
 internal sealed class BookingManager(
+    ITenantDb db,
     ILogger<BookingManager> logger) : IBookingManager
 {
     public Task<BookingDto> CreateAsync(CreateBookingRequest request, CancellationToken ct = default)

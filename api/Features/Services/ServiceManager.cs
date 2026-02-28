@@ -1,6 +1,9 @@
+using Api.Common;
+
 namespace Api.Features.Services;
 
 internal sealed class ServiceManager(
+    ITenantDb db,
     ILogger<ServiceManager> logger) : IServiceManager
 {
     public Task<ServiceDto> CreateAsync(CreateServiceRequest request, CancellationToken ct = default)

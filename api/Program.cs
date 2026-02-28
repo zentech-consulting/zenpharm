@@ -1,5 +1,7 @@
 using System.Text;
 using Api.Common;
+using Api.Common.Migrations;
+using Api.Common.Tenancy;
 using Api.Features.AiChat;
 using Api.Features.AiChat.Tools;
 using Api.Features.Auth;
@@ -8,6 +10,7 @@ using Api.Features.Clients;
 using Api.Features.Employees;
 using Api.Features.Knowledge;
 using Api.Features.Notifications;
+using Api.Features.Platform;
 using Api.Features.Reports;
 using Api.Features.Schedules;
 using Api.Features.Services;
@@ -104,10 +107,12 @@ builder.Services.AddCors(opts =>
     });
 });
 
-// --- Database ---
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
-builder.Services.AddSingleton<IDbConnectionFactory>(new SqlConnectionFactory(connStr));
-builder.Services.AddScoped<IDbMigration, DbMigration>();
+// --- Multi-Tenancy (Catalog DB + Tenant DB) ---
+builder.Services.AddMultiTenancy(builder.Configuration);
+
+// --- Migrations ---
+builder.Services.AddSingleton<ICatalogMigration, CatalogMigration>();
+builder.Services.AddSingleton<ITenantMigration, TenantMigration>();
 
 // --- Feature Managers ---
 builder.Services.AddScoped<IAuthManager, AuthManager>();
@@ -131,11 +136,11 @@ builder.Services.AddHttpClient("Anthropic", client =>
 
 var app = builder.Build();
 
-// --- Database Migration ---
+// --- Catalogue Database Migration ---
 using (var scope = app.Services.CreateScope())
 {
-    var migration = scope.ServiceProvider.GetRequiredService<IDbMigration>();
-    await migration.RunAllAsync();
+    var catalogMigration = scope.ServiceProvider.GetRequiredService<ICatalogMigration>();
+    await catalogMigration.RunAllAsync();
 }
 
 // --- Middleware ---
@@ -146,12 +151,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+app.UseTenantResolution();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
 // --- Health Check ---
-app.MapGet("/health", async (IDbConnectionFactory db) =>
+app.MapGet("/health", async (ICatalogDb catalogDb) =>
 {
     bool dbOk;
     long latencyMs;
@@ -159,7 +165,7 @@ app.MapGet("/health", async (IDbConnectionFactory db) =>
     try
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        using var conn = await db.CreateAsync();
+        using var conn = await catalogDb.CreateAsync();
         await conn.ExecuteScalarAsync<int>("SELECT 1");
         sw.Stop();
         dbOk = true;
@@ -167,7 +173,7 @@ app.MapGet("/health", async (IDbConnectionFactory db) =>
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning(ex, "Health check: database probe failed");
+        app.Logger.LogWarning(ex, "Health check: catalogue database probe failed");
         dbOk = false;
         latencyMs = -1;
     }
@@ -177,7 +183,7 @@ app.MapGet("/health", async (IDbConnectionFactory db) =>
 })
 .WithTags("Health")
 .AllowAnonymous()
-.WithOpenApi(op => { op.Summary = "Health check with database probe"; return op; });
+.WithOpenApi(op => { op.Summary = "Health check with catalogue database probe"; return op; });
 
 // --- Feature Endpoints ---
 app.MapAuthEndpoints();
@@ -189,5 +195,6 @@ app.MapEmployeeEndpoints();
 app.MapAiChatEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapReportEndpoints();
+app.MapPlatformEndpoints();
 
 app.Run();

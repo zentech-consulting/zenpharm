@@ -1,6 +1,9 @@
+using Api.Common;
+
 namespace Api.Features.Employees;
 
 internal sealed class EmployeeManager(
+    ITenantDb db,
     ILogger<EmployeeManager> logger) : IEmployeeManager
 {
     public Task<EmployeeDto> CreateAsync(CreateEmployeeRequest request, CancellationToken ct = default)
