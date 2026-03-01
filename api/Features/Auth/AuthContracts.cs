@@ -34,8 +34,21 @@ public sealed record AdminUserDto(
     Guid Id,
     string Username,
     string? Email,
-    string? DisplayName,
+    string? FullName,
     string Role);
+
+internal sealed record RefreshTokenJoinResult
+{
+    public Guid Id { get; init; }
+    public Guid UserId { get; init; }
+    public DateTimeOffset ExpiresAt { get; init; }
+    public bool IsRevoked { get; init; }
+    public string Username { get; init; } = "";
+    public string? Email { get; init; }
+    public string? FullName { get; init; }
+    public string Role { get; init; } = "";
+    public bool IsActive { get; init; }
+}
 
 internal sealed record AdminUserEntity
 {
@@ -43,12 +56,12 @@ internal sealed record AdminUserEntity
     public string Username { get; init; } = "";
     public string PasswordHash { get; init; } = "";
     public string? Email { get; init; }
-    public string? DisplayName { get; init; }
-    public string Role { get; init; } = "staff";
+    public string? FullName { get; init; }
+    public string Role { get; init; } = "Admin";
     public bool IsActive { get; init; } = true;
-    public bool IsLocked { get; init; }
     public int FailedLoginAttempts { get; init; }
     public DateTimeOffset? LockoutEnd { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? LastLoginAt { get; init; }
+    public string? LastLoginIp { get; init; }
 }
