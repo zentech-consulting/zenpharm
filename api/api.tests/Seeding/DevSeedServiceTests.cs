@@ -1,6 +1,7 @@
 using Api.Common;
 using Api.Common.Migrations;
 using Api.Common.Seeding;
+using Api.Common.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -119,7 +120,10 @@ public class DevSeedServiceTests
 
         var logger = NullLogger<DevSeedService>.Instance;
 
-        var service = new DevSeedService(catalogDb, tenantMigration, config, logger);
+        var protector = Substitute.For<IConnectionStringProtector>();
+        protector.Protect(Arg.Any<string>()).Returns(x => x.Arg<string>());
+
+        var service = new DevSeedService(catalogDb, protector, tenantMigration, config, logger);
 
         // Should not throw — graceful fallback
         await service.SeedAsync();
@@ -140,7 +144,9 @@ public class DevSeedServiceTests
 
         var logger = NullLogger<DevSeedService>.Instance;
 
-        var service = new DevSeedService(catalogDb, tenantMigration, config, logger);
+        var protector = Substitute.For<IConnectionStringProtector>();
+
+        var service = new DevSeedService(catalogDb, protector, tenantMigration, config, logger);
 
         // Should return immediately without calling catalogDb
         await service.SeedAsync();

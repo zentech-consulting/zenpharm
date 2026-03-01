@@ -1,10 +1,12 @@
 using System.Collections.Concurrent;
+using Api.Common.Security;
 using Dapper;
 
 namespace Api.Common.Tenancy;
 
 internal sealed class TenantResolver(
     ICatalogDb catalogDb,
+    IConnectionStringProtector protector,
     ILogger<TenantResolver> logger) : ITenantResolver
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
@@ -46,7 +48,7 @@ internal sealed class TenantResolver(
             PrimaryColour: entity.PrimaryColour,
             Plan: entity.PlanName ?? "None",
             Status: entity.Status,
-            ConnectionString: entity.ConnectionString);
+            ConnectionString: protector.Unprotect(entity.ConnectionString));
 
         _cache[subdomain] = new CacheEntry(context, DateTimeOffset.UtcNow.Add(CacheTtl));
 

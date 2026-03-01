@@ -1,10 +1,12 @@
 using Api.Common.Migrations;
+using Api.Common.Security;
 using Dapper;
 
 namespace Api.Common.Seeding;
 
 internal sealed class DevSeedService(
     ICatalogDb catalogDb,
+    IConnectionStringProtector protector,
     ITenantMigration tenantMigration,
     IConfiguration configuration,
     ILogger<DevSeedService> logger) : IDevSeedService
@@ -34,8 +36,9 @@ internal sealed class DevSeedService(
                 return;
             }
 
-            // 2. Seed dev tenant
-            var tenantId = await SeedTenantAsync(conn, subdomain, tenantConnString, ct);
+            // 2. Seed dev tenant (encrypt connection string for storage)
+            var encryptedConnString = protector.Protect(tenantConnString);
+            var tenantId = await SeedTenantAsync(conn, subdomain, encryptedConnString, ct);
             if (tenantId is null)
             {
                 logger.LogWarning("Dev seed: could not seed tenant — skipping remaining steps");

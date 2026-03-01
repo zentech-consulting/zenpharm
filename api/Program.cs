@@ -221,4 +221,13 @@ app.MapProductEndpoints();
 app.MapPlatformEndpoints();
 app.MapStripeWebhookEndpoints();
 
+// --- DryRun Safety Check (non-Development) ---
+if (!app.Environment.IsDevelopment())
+{
+    if (app.Configuration.GetValue("Email:DryRun", true))
+        app.Logger.LogWarning("Email:DryRun is TRUE in {Environment} — emails will be discarded", app.Environment.EnvironmentName);
+    if (app.Configuration.GetValue("SmsBroadcast:DryRun", true))
+        app.Logger.LogWarning("SmsBroadcast:DryRun is TRUE in {Environment} — SMS will be discarded", app.Environment.EnvironmentName);
+}
+
 app.Run();

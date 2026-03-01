@@ -1,10 +1,12 @@
+using Api.Common.Security;
+
 namespace Api.Common.Tenancy;
 
 public static class TenancyServiceExtensions
 {
     /// <summary>
     /// Registers multi-tenancy services: ICatalogDb (singleton), ITenantResolver (singleton),
-    /// ITenantDb (scoped, from TenantContext), and TenantContext (scoped, from HttpContext).
+    /// IConnectionStringProtector (singleton), ITenantDb (scoped), TenantContext (scoped).
     /// </summary>
     public static IServiceCollection AddMultiTenancy(this IServiceCollection services, IConfiguration configuration)
     {
@@ -12,6 +14,9 @@ public static class TenancyServiceExtensions
         var catalogConnStr = configuration.GetConnectionString("CatalogConnection") ?? "";
         var catalogFactory = new SqlConnectionFactory(catalogConnStr);
         services.AddSingleton<ICatalogDb>(catalogFactory);
+
+        // Connection string protector — encrypts/decrypts tenant connection strings
+        services.AddSingleton<IConnectionStringProtector, ConnectionStringProtector>();
 
         // Tenant resolver — singleton with in-memory cache
         services.AddSingleton<ITenantResolver, TenantResolver>();
