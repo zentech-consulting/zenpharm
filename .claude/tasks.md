@@ -55,24 +55,70 @@
 
 ## Pending (待处理)
 
-### Phase 2: 首个垂直 — ZenPharm 药房 SaaS
+### Phase 2: ZenPharm MVP — Phase 1 Basic Tier
+
+- **状态**: completed
+- **优先级**: high
+- **创建**: 2026-02-21
+- **更新**: 2026-03-02
+- **描述**: Pharmacy-specific customisation of zentech-biz template (Basic tier features)
+- **PR**: #2 merged
+- **子任务**:
+  1. [x] Database schema — 6 pharmacy migrations (MasterProducts cols, Tenants cols, Clients cols, Employee roles, TenantProducts, StockMovements)
+  2. [x] MasterProducts module (ICatalogDb) — platform-wide catalogue with PBS/schedule/barcode
+  3. [x] TenantProducts module (ITenantDb) — import, stock movements, low-stock/expiry alerts
+  4. [x] Clients pharmacy fields — DateOfBirth, Allergies, MedicationNotes, Tags
+  5. [x] Employee pharmacy roles — pharmacist, dispense_technician, pharmacy_assistant, cashier, manager, staff
+  6. [x] Reports enhancement — TotalProducts, LowStockCount, ExpiringCount
+  7. [x] Admin Products page — tabs (My Products / Import from Catalogue), stock modals, schedule class colour tags
+  8. [x] Dashboard inventory cards — Total Products, Low Stock, Expiring Soon
+  9. [x] ZenPharm branding — public homepage, About, Pricing ($79/$199/Enterprise), admin sidebar
+- **统计**: 174 tests pass, 0 warnings, 0 errors
+
+### Dev Seed Data — E2E Testing Support
+
+- **状态**: in_progress
+- **优先级**: high
+- **创建**: 2026-03-02
+- **更新**: 2026-03-02
+- **描述**: Auto-seed dev tenant, admin user, plan, and 30 pharmacy products on startup (dev only)
+- **PR**: #3 (under review)
+- **子任务**:
+  1. [x] IDevSeedService + DevSeedService (idempotent, dev-only)
+  2. [x] PharmacyMasterProductData (30 products, 4 schedule classes)
+  3. [x] Program.cs integration (double IsDevelopment guard)
+  4. [x] 10 tests (184 total passing)
+  5. [x] Code review fixes (internal interface, UserSecretsId, deprecate SQL seeds)
+
+### Pre-Deployment Blockers
+
+- **状态**: pending
+- **优先级**: critical
+- **创建**: 2026-03-02
+- **更新**: 2026-03-02
+- **描述**: Issues surfaced by security review that must be resolved before first production deployment
+- **子任务**:
+  1. [ ] **ConnectionString encryption** — Tenants.ConnectionString stored in plain text; encrypt at rest via Azure Key Vault / Always Encrypted / managed identity (pre-existing TODO in CatalogMigration.cs:42)
+  2. [ ] **appsettings.Production.json** — Create production config to ensure Email.DryRun=false and SmsBroadcast.DryRun=false; add startup validation warning if DryRun=true in non-Development
+  3. [ ] **User-secrets migration** — Developers using zenpharm must re-init secrets after UserSecretsId change from zentech-biz-api to zenpharm-api
+
+### Phase 2.5: ZenPharm Premium Features
 
 - **状态**: pending
 - **优先级**: high
-- **创建**: 2026-02-21
-- **更新**: 2026-02-27
-- **描述**: 从 zentech-biz 模板 fork 出 zenpharm 项目，定制药房行业垂直方案
-- **详细方案**: `zenpharm-saas-product-plan.md`
-- **前置**: Phase 1 模板完成
-- **药房专属功能**:
-  - 共享产品库 (master_products 药品字段: schedule_class, PBS code, active_ingredients)
-  - 产品模板包 ("社区药房标配" 500+ 产品)
+- **创建**: 2026-03-02
+- **更新**: 2026-03-02
+- **描述**: Phase 2 Premium tier features for ZenPharm
+- **前置**: Phase 2 Basic completed
+- **功能清单**:
+  - 产品模板包 ("社区药房标配" 500+ 产品预填充)
   - 药品合规逻辑 (S2 自由销售, S3 药剂师审核, S4 仅展示)
   - PBS Public API 对接 (政府补贴药品目录)
   - AI 药房助手 Tools (药物交互查询、库存推荐、营销文案)
   - AI 知识库内容 (药品信息、健康建议)
-  - zenpharm.com.au 品牌营销内容
-  - 在线商店 (Premium 功能, Phase 2+)
+  - 在线商店 (click-and-collect)
+  - SMS 通知 (prescription ready, appointment reminders)
+  - 高级报表 (stock turnover, sales trends, expiry waste)
 
 ### Phase 3: 更多垂直行业
 
