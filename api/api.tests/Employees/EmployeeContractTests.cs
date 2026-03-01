@@ -1,0 +1,78 @@
+using Api.Features.Employees;
+using Xunit;
+
+namespace Api.Tests.Employees;
+
+public class EmployeeContractTests
+{
+    [Fact]
+    public void CreateEmployeeRequest_DefaultValues()
+    {
+        var req = new CreateEmployeeRequest();
+
+        Assert.Equal("", req.FirstName);
+        Assert.Equal("", req.LastName);
+        Assert.Null(req.Email);
+        Assert.Null(req.Phone);
+        Assert.Equal("staff", req.Role);
+        Assert.True(req.IsActive);
+    }
+
+    [Fact]
+    public void UpdateEmployeeRequest_DefaultValues()
+    {
+        var req = new UpdateEmployeeRequest();
+
+        Assert.Equal("", req.FirstName);
+        Assert.Equal("", req.LastName);
+        Assert.Null(req.Email);
+        Assert.Null(req.Phone);
+        Assert.Equal("staff", req.Role);
+        Assert.True(req.IsActive);
+    }
+
+    [Fact]
+    public void EmployeeDto_RecordEquality()
+    {
+        var id = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+        var a = new EmployeeDto(id, "Jane", "Doe", "jane@example.com", "0400111222", "manager", true, now);
+        var b = new EmployeeDto(id, "Jane", "Doe", "jane@example.com", "0400111222", "manager", true, now);
+
+        Assert.Equal(a, b);
+    }
+
+    [Fact]
+    public void EmployeeDto_DifferentId_NotEqual()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var a = new EmployeeDto(Guid.NewGuid(), "Jane", "Doe", null, null, "staff", true, now);
+        var b = new EmployeeDto(Guid.NewGuid(), "Jane", "Doe", null, null, "staff", true, now);
+
+        Assert.NotEqual(a, b);
+    }
+
+    [Fact]
+    public void EmployeeListResponse_EmptyItems()
+    {
+        var response = new EmployeeListResponse([], 0);
+
+        Assert.Empty(response.Items);
+        Assert.Equal(0, response.TotalCount);
+    }
+
+    [Fact]
+    public void EmployeeListResponse_WithItems()
+    {
+        var items = new List<EmployeeDto>
+        {
+            new(Guid.NewGuid(), "Jane", "Doe", null, null, "manager", true, DateTimeOffset.UtcNow),
+            new(Guid.NewGuid(), "John", "Smith", "john@test.com", null, "staff", true, DateTimeOffset.UtcNow)
+        };
+
+        var response = new EmployeeListResponse(items, 2);
+
+        Assert.Equal(2, response.Items.Count);
+        Assert.Equal(2, response.TotalCount);
+    }
+}
