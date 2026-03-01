@@ -122,10 +122,15 @@ builder.Services.AddScoped<IBookingManager, BookingManager>();
 builder.Services.AddScoped<IScheduleManager, ScheduleManager>();
 builder.Services.AddScoped<IEmployeeManager, EmployeeManager>();
 builder.Services.AddScoped<IAiChatManager, AiChatManager>();
-builder.Services.AddSingleton<IAiToolExecutor, AiToolExecutor>();
+builder.Services.AddScoped<IAiToolExecutor, AiToolExecutor>();
 builder.Services.AddScoped<IKnowledgeManager, KnowledgeManager>();
-builder.Services.AddScoped<IEmailService, StubEmailService>();
+var emailDryRun = builder.Configuration.GetValue("Email:DryRun", true);
+if (emailDryRun)
+    builder.Services.AddScoped<IEmailService, DryRunEmailService>();
+else
+    builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IReportManager, ReportManager>();
+builder.Services.AddSingleton<IProvisioningPipeline, ProvisioningPipeline>();
 
 // --- HTTP Clients ---
 builder.Services.AddHttpClient("Anthropic", client =>
@@ -196,5 +201,6 @@ app.MapAiChatEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapReportEndpoints();
 app.MapPlatformEndpoints();
+app.MapStripeWebhookEndpoints();
 
 app.Run();

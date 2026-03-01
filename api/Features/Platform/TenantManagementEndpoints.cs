@@ -1,3 +1,6 @@
+using Api.Common;
+using Dapper;
+
 namespace Api.Features.Platform;
 
 public static class TenantManagementEndpoints
@@ -8,15 +11,26 @@ public static class TenantManagementEndpoints
             .WithTags("Platform")
             .RequireAuthorization();
 
-        group.MapGet("/tenants", () =>
+        group.MapGet("/tenants", async (ICatalogDb catalogDb, CancellationToken ct) =>
         {
-            throw new NotImplementedException("Platform tenant listing not yet implemented — see Phase 1, Subtask 3");
+            using var conn = await catalogDb.CreateAsync();
+            var tenants = await conn.QueryAsync<dynamic>(
+                new CommandDefinition(
+                    "SELECT Id, Name, Subdomain, IsActive, CreatedAt FROM dbo.Tenants ORDER BY CreatedAt DESC",
+                    cancellationToken: ct));
+            return Results.Ok(tenants);
         })
         .WithOpenApi(op => { op.Summary = "List all tenants (platform admin)"; return op; });
 
-        group.MapPost("/tenants", () =>
+        group.MapPost("/tenants", async (
+            ProvisionRequest req,
+            IProvisioningPipeline pipeline,
+            CancellationToken ct) =>
         {
-            throw new NotImplementedException("Platform tenant provisioning not yet implemented — see Phase 1, Subtask 3");
+            var result = await pipeline.ProvisionAsync(req, ct);
+            return result.Success
+                ? Results.Created($"/api/platform/tenants/{result.TenantId}", result)
+                : Results.BadRequest(result);
         })
         .WithOpenApi(op => { op.Summary = "Provision a new tenant (platform admin)"; return op; });
     }

@@ -26,30 +26,49 @@ public static class Sms
         if (!enabled)
             return SmsSendResult.Skip("SMS is disabled in configuration");
 
-        var maskedPhone = MaskPhone(phoneNumber);
+        var normalised = NormalisePhone(phoneNumber);
+        var maskedPhone = MaskPhone(normalised);
 
         var dryRun = cfg.GetValue<bool>("SmsBroadcast:DryRun");
         if (dryRun)
         {
-            logger.LogInformation("SMS DryRun: To={Phone}", maskedPhone);
+            logger.LogInformation("SMS DryRun: To={Phone} Msg={Message}", maskedPhone, message);
             return SmsSendResult.Ok();
         }
 
         var username = cfg["SmsBroadcast:Username"];
         var password = cfg["SmsBroadcast:Password"];
+        var from = cfg["SmsBroadcast:From"] ?? "Zentech";
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             return SmsSendResult.Skip("SMS credentials not configured");
 
         try
         {
-            // SMS provider integration will be implemented in Phase 1, Subtask 10
-            await Task.CompletedTask;
-            throw new NotImplementedException("SMS provider integration not yet implemented — see Phase 1, Subtask 10");
-        }
-        catch (NotImplementedException)
-        {
-            throw;
+            using var httpClient = new HttpClient();
+            var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["username"] = username,
+                ["password"] = password,
+                ["to"] = normalised,
+                ["from"] = from,
+                ["message"] = message
+            });
+
+            var response = await httpClient.PostAsync(
+                "https://api.smsbroadcast.com.au/api-adv.php",
+                content, ct);
+
+            var body = await response.Content.ReadAsStringAsync(ct);
+
+            if (body.StartsWith("OK:", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogInformation("SMS sent successfully to {Phone}", maskedPhone);
+                return SmsSendResult.Ok();
+            }
+
+            logger.LogWarning("SMS provider returned: {Response} for {Phone}", body, maskedPhone);
+            return SmsSendResult.Fail($"SMS provider error: {body}");
         }
         catch (Exception ex)
         {
@@ -58,7 +77,22 @@ public static class Sms
         }
     }
 
-    private static string MaskPhone(string phone)
+    internal static string NormalisePhone(string phone)
+    {
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+
+        // Australian mobile: 04xx → 614xx
+        if (digits.StartsWith("04") && digits.Length == 10)
+            return "61" + digits[1..];
+
+        // Already international
+        if (digits.StartsWith("61") && digits.Length == 11)
+            return digits;
+
+        return digits;
+    }
+
+    internal static string MaskPhone(string phone)
     {
         if (phone.Length <= 4) return "****";
         return new string('*', phone.Length - 4) + phone[^4..];

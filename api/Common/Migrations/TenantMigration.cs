@@ -80,6 +80,165 @@ internal sealed class TenantMigration(
                 CREATE INDEX IX_RefreshTokens_UserId ON dbo.RefreshTokens (UserId);
                 CREATE INDEX IX_RefreshTokens_ExpiresAt ON dbo.RefreshTokens (ExpiresAt) WHERE IsRevoked = 0;
             END
+            """),
+
+        ("003_Clients", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Clients' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.Clients (
+                    Id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    FirstName   NVARCHAR(100)    NOT NULL,
+                    LastName    NVARCHAR(100)    NOT NULL,
+                    Email       NVARCHAR(200)    NULL,
+                    Phone       NVARCHAR(20)     NULL,
+                    Notes       NVARCHAR(2000)   NULL,
+                    CreatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_Clients PRIMARY KEY (Id)
+                );
+                CREATE INDEX IX_Clients_Email ON dbo.Clients (Email);
+                CREATE INDEX IX_Clients_LastName ON dbo.Clients (LastName);
+            END
+            """),
+
+        ("004_Services", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Services' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.Services (
+                    Id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    Name            NVARCHAR(200)    NOT NULL,
+                    Description     NVARCHAR(MAX)    NULL,
+                    Category        NVARCHAR(50)     NOT NULL,
+                    Price           DECIMAL(18,2)    NOT NULL,
+                    DurationMinutes INT              NOT NULL DEFAULT 30,
+                    IsActive        BIT              NOT NULL DEFAULT 1,
+                    CreatedAt       DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt       DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_Services PRIMARY KEY (Id)
+                );
+                CREATE INDEX IX_Services_Category ON dbo.Services (Category);
+                CREATE INDEX IX_Services_IsActive ON dbo.Services (IsActive);
+            END
+            """),
+
+        ("005_Employees", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Employees' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.Employees (
+                    Id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    FirstName   NVARCHAR(100)    NOT NULL,
+                    LastName    NVARCHAR(100)    NOT NULL,
+                    Email       NVARCHAR(200)    NULL,
+                    Phone       NVARCHAR(20)     NULL,
+                    Role        NVARCHAR(50)     NOT NULL DEFAULT 'staff',
+                    IsActive    BIT              NOT NULL DEFAULT 1,
+                    CreatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_Employees PRIMARY KEY (Id)
+                );
+                CREATE INDEX IX_Employees_Role ON dbo.Employees (Role);
+                CREATE INDEX IX_Employees_IsActive ON dbo.Employees (IsActive);
+            END
+            """),
+
+        ("006_Bookings", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Bookings' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.Bookings (
+                    Id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    ClientId    UNIQUEIDENTIFIER NOT NULL,
+                    ServiceId   UNIQUEIDENTIFIER NOT NULL,
+                    EmployeeId  UNIQUEIDENTIFIER NULL,
+                    StartTime   DATETIMEOFFSET   NOT NULL,
+                    EndTime     DATETIMEOFFSET   NOT NULL,
+                    Status      NVARCHAR(30)     NOT NULL DEFAULT 'pending',
+                    Notes       NVARCHAR(2000)   NULL,
+                    CreatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_Bookings PRIMARY KEY (Id),
+                    CONSTRAINT FK_Bookings_ClientId FOREIGN KEY (ClientId) REFERENCES dbo.Clients(Id),
+                    CONSTRAINT FK_Bookings_ServiceId FOREIGN KEY (ServiceId) REFERENCES dbo.Services(Id),
+                    CONSTRAINT FK_Bookings_EmployeeId FOREIGN KEY (EmployeeId) REFERENCES dbo.Employees(Id),
+                    CONSTRAINT CK_Bookings_Status CHECK (Status IN ('pending','confirmed','cancelled','completed','no_show'))
+                );
+                CREATE INDEX IX_Bookings_ClientId ON dbo.Bookings (ClientId);
+                CREATE INDEX IX_Bookings_EmployeeId ON dbo.Bookings (EmployeeId);
+                CREATE INDEX IX_Bookings_StartTime ON dbo.Bookings (StartTime);
+                CREATE INDEX IX_Bookings_Status ON dbo.Bookings (Status);
+            END
+            """),
+
+        ("007_Schedules", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Schedules' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.Schedules (
+                    Id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    EmployeeId  UNIQUEIDENTIFIER NOT NULL,
+                    Date        DATE             NOT NULL,
+                    StartTime   TIME             NOT NULL,
+                    EndTime     TIME             NOT NULL,
+                    Location    NVARCHAR(50)     NULL,
+                    Notes       NVARCHAR(2000)   NULL,
+                    CreatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_Schedules PRIMARY KEY (Id),
+                    CONSTRAINT FK_Schedules_EmployeeId FOREIGN KEY (EmployeeId) REFERENCES dbo.Employees(Id)
+                );
+                CREATE INDEX IX_Schedules_EmployeeId_Date ON dbo.Schedules (EmployeeId, Date);
+            END
+            """),
+
+        ("008_KnowledgeEntries", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'KnowledgeEntries' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.KnowledgeEntries (
+                    Id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    Title       NVARCHAR(200)    NOT NULL,
+                    Content     NVARCHAR(MAX)    NOT NULL,
+                    Category    NVARCHAR(50)     NOT NULL,
+                    Tags        NVARCHAR(500)    NULL,
+                    CreatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_KnowledgeEntries PRIMARY KEY (Id)
+                );
+                CREATE INDEX IX_KnowledgeEntries_Category ON dbo.KnowledgeEntries (Category);
+            END
+            """),
+
+        ("009_AiChatSessions", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'AiChatSessions' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.AiChatSessions (
+                    Id              BIGINT IDENTITY(1,1) NOT NULL,
+                    SessionToken    NVARCHAR(100)   NOT NULL,
+                    ClientIp        NVARCHAR(45)    NULL,
+                    MessageCount    INT             NOT NULL DEFAULT 0,
+                    CreatedAt       DATETIMEOFFSET  NOT NULL DEFAULT SYSUTCDATETIME(),
+                    LastMessageAt   DATETIMEOFFSET  NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_AiChatSessions PRIMARY KEY (Id)
+                );
+                CREATE UNIQUE INDEX IX_AiChatSessions_SessionToken ON dbo.AiChatSessions (SessionToken);
+            END
+            """),
+
+        ("010_AiChatMessages", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'AiChatMessages' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.AiChatMessages (
+                    Id          BIGINT IDENTITY(1,1) NOT NULL,
+                    SessionId   BIGINT           NOT NULL,
+                    Role        NVARCHAR(20)     NOT NULL,
+                    Content     NVARCHAR(MAX)    NOT NULL,
+                    ToolsCalled NVARCHAR(500)    NULL,
+                    DurationMs  INT              NULL,
+                    Success     BIT              NOT NULL DEFAULT 1,
+                    Error       NVARCHAR(MAX)    NULL,
+                    CreatedAt   DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_AiChatMessages PRIMARY KEY (Id),
+                    CONSTRAINT FK_AiChatMessages_SessionId FOREIGN KEY (SessionId) REFERENCES dbo.AiChatSessions(Id) ON DELETE CASCADE
+                );
+                CREATE INDEX IX_AiChatMessages_SessionId ON dbo.AiChatMessages (SessionId);
+            END
             """)
     ];
 }
