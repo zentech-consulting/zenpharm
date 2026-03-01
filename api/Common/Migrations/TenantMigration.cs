@@ -239,6 +239,85 @@ internal sealed class TenantMigration(
                 );
                 CREATE INDEX IX_AiChatMessages_SessionId ON dbo.AiChatMessages (SessionId);
             END
+            """),
+
+        ("011_Clients_PharmacyColumns", """
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Clients') AND name = 'DateOfBirth')
+            BEGIN
+                ALTER TABLE dbo.Clients ADD
+                    DateOfBirth     DATE           NULL,
+                    Allergies       NVARCHAR(2000) NULL,
+                    MedicationNotes NVARCHAR(2000) NULL,
+                    Tags            NVARCHAR(500)  NULL;
+            END
+            """),
+
+        ("012_Employees_PharmacyRoles", """
+            IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Employees_Role')
+            BEGIN
+                ALTER TABLE dbo.Employees DROP CONSTRAINT CK_Employees_Role;
+            END
+
+            IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Employees_PharmacyRole')
+            BEGIN
+                ALTER TABLE dbo.Employees ADD CONSTRAINT CK_Employees_PharmacyRole
+                    CHECK (Role IN ('pharmacist', 'dispense_technician', 'pharmacy_assistant', 'cashier', 'manager', 'staff'));
+            END
+            """),
+
+        ("013_TenantProducts", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TenantProducts' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.TenantProducts (
+                    Id                UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    MasterProductId   UNIQUEIDENTIFIER NOT NULL,
+                    MasterProductName NVARCHAR(200)    NOT NULL,
+                    GenericName       NVARCHAR(200)    NULL,
+                    Brand             NVARCHAR(200)    NULL,
+                    Category          NVARCHAR(100)    NOT NULL,
+                    ScheduleClass     NVARCHAR(20)     NOT NULL DEFAULT 'Unscheduled',
+                    DefaultPrice      DECIMAL(10,2)    NOT NULL DEFAULT 0,
+                    CustomName        NVARCHAR(200)    NULL,
+                    CustomPrice       DECIMAL(10,2)    NULL,
+                    ImageUrl          NVARCHAR(500)    NULL,
+                    StockQuantity     INT              NOT NULL DEFAULT 0,
+                    ReorderLevel      INT              NOT NULL DEFAULT 10,
+                    ExpiryDate        DATE             NULL,
+                    IsVisible         BIT              NOT NULL DEFAULT 1,
+                    IsFeatured        BIT              NOT NULL DEFAULT 0,
+                    SortOrder         INT              NOT NULL DEFAULT 0,
+                    CreatedAt         DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt         DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_TenantProducts PRIMARY KEY (Id),
+                    CONSTRAINT UQ_TenantProducts_MasterProductId UNIQUE (MasterProductId),
+                    CONSTRAINT CK_TenantProducts_ScheduleClass CHECK (ScheduleClass IN ('Unscheduled', 'S2', 'S3', 'S4'))
+                );
+                CREATE INDEX IX_TenantProducts_Category ON dbo.TenantProducts (Category);
+                CREATE INDEX IX_TenantProducts_ScheduleClass ON dbo.TenantProducts (ScheduleClass);
+                CREATE INDEX IX_TenantProducts_StockQuantity ON dbo.TenantProducts (StockQuantity);
+                CREATE INDEX IX_TenantProducts_ExpiryDate ON dbo.TenantProducts (ExpiryDate) WHERE ExpiryDate IS NOT NULL;
+            END
+            """),
+
+        ("014_StockMovements", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'StockMovements' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.StockMovements (
+                    Id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    TenantProductId UNIQUEIDENTIFIER NOT NULL,
+                    MovementType    NVARCHAR(20)     NOT NULL,
+                    Quantity        INT              NOT NULL,
+                    Reference       NVARCHAR(200)    NULL,
+                    Notes           NVARCHAR(2000)   NULL,
+                    CreatedAt       DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CreatedBy       NVARCHAR(200)    NULL,
+                    CONSTRAINT PK_StockMovements PRIMARY KEY (Id),
+                    CONSTRAINT FK_StockMovements_TenantProductId FOREIGN KEY (TenantProductId) REFERENCES dbo.TenantProducts(Id),
+                    CONSTRAINT CK_StockMovements_MovementType CHECK (MovementType IN ('stock_in', 'stock_out', 'adjustment', 'expired', 'return'))
+                );
+                CREATE INDEX IX_StockMovements_TenantProductId ON dbo.StockMovements (TenantProductId);
+                CREATE INDEX IX_StockMovements_CreatedAt ON dbo.StockMovements (CreatedAt);
+            END
             """)
     ];
 }
