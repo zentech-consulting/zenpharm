@@ -28,7 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opts =>
 {
-    opts.SwaggerDoc("v1", new() { Title = "Zentech Biz API", Version = "v1" });
+    opts.SwaggerDoc("v1", new() { Title = "ZenPharm API", Version = "v1" });
     opts.AddSecurityDefinition("Bearer", new()
     {
         Description = "JWT Bearer token. Enter: Bearer {token}",
@@ -56,8 +56,8 @@ var jwtKey = builder.Configuration["Jwt:SecretKey"]
 if (jwtKey.Length < 32)
     throw new InvalidOperationException("Jwt:SecretKey must be at least 32 characters.");
 
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "zentech-biz";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "zentech-biz-clients";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "zenpharm";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "zenpharm-clients";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts =>

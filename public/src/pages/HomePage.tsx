@@ -1,21 +1,36 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Sparkles, Calendar, Users } from 'lucide-react'
+import { ArrowRight, Sparkles, Calendar, Users, Package, ClipboardList, BarChart3 } from 'lucide-react'
 
 const features = [
   {
-    icon: Calendar,
-    title: 'Smart Booking',
-    description: 'Online scheduling with real-time availability and automated reminders.',
+    icon: Package,
+    title: 'Shared Catalogue',
+    description: 'Import from a centralised product catalogue with PBS codes, schedule classes, and pharmacy-specific data.',
+  },
+  {
+    icon: ClipboardList,
+    title: 'Inventory Management',
+    description: 'Track stock levels, set reorder alerts, monitor expiry dates, and record all stock movements.',
   },
   {
     icon: Users,
-    title: 'Client Management',
-    description: 'Complete client profiles, history tracking, and communication tools.',
+    title: 'Client Records',
+    description: 'Complete patient profiles with allergies, medication notes, and date of birth for better care.',
+  },
+  {
+    icon: Calendar,
+    title: 'Scheduling & Bookings',
+    description: 'Manage pharmacist consultations, flu vaccinations, and health checks with online booking.',
   },
   {
     icon: Sparkles,
-    title: 'AI Consultant',
-    description: 'Intelligent AI assistant to help your customers around the clock.',
+    title: 'AI Pharmacy Assistant',
+    description: 'Intelligent AI that answers customer questions about medications, opening hours, and services.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Reports & Insights',
+    description: 'Dashboard with revenue, stock alerts, expiry tracking, and daily booking statistics.',
   },
 ]
 
@@ -25,24 +40,24 @@ export default function HomePage() {
       <section className="bg-primary px-6 py-24 text-white">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="mb-6 text-5xl font-bold leading-tight">
-            Your Industry, <span className="text-highlight">Managed Intelligently</span>
+            Smart Pharmacy Management, <span className="text-highlight">Instantly</span>
           </h1>
           <p className="mb-8 text-lg opacity-80">
-            A complete business management platform tailored to your industry.
-            Bookings, clients, staff, and AI — all in one place.
+            The all-in-one platform built for Australian independent pharmacies.
+            Catalogue, inventory, clients, scheduling, and AI — ready to go.
           </p>
           <div className="flex justify-center gap-4">
             <Link
-              to="/contact"
+              to="/pricing"
               className="inline-flex items-center gap-2 rounded-lg bg-highlight px-6 py-3 font-semibold text-white transition-opacity hover:opacity-90"
             >
-              Get Started <ArrowRight className="h-4 w-4" />
+              View Pricing <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              to="/services"
+              to="/contact"
               className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition-colors hover:bg-white/10"
             >
-              Our Services
+              Book a Demo
             </Link>
           </div>
         </div>
@@ -51,9 +66,9 @@ export default function HomePage() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-12 text-center text-3xl font-bold text-primary">
-            Everything You Need
+            Everything Your Pharmacy Needs
           </h2>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
               <div
                 key={feature.title}
@@ -70,15 +85,16 @@ export default function HomePage() {
 
       <section className="bg-surface px-6 py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="mb-4 text-3xl font-bold text-primary">Ready to Transform Your Business?</h2>
+          <h2 className="mb-4 text-3xl font-bold text-primary">Ready to Modernise Your Pharmacy?</h2>
           <p className="mb-8 text-gray-600">
-            Get in touch and we&apos;ll build a solution tailored to your industry.
+            Join independent pharmacies across Australia already using ZenPharm to
+            streamline operations and deliver better patient care.
           </p>
           <Link
             to="/contact"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-3 font-semibold text-white transition-opacity hover:opacity-90"
           >
-            Contact Us <ArrowRight className="h-4 w-4" />
+            Get Started <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>

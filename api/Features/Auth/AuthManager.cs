@@ -19,8 +19,8 @@ internal sealed class AuthManager(
             ? key
             : throw new InvalidOperationException("Jwt:SecretKey must be at least 32 characters"));
 
-    private readonly string _issuer = cfg["Jwt:Issuer"] ?? "zentech-biz";
-    private readonly string _audience = cfg["Jwt:Audience"] ?? "zentech-biz-clients";
+    private readonly string _issuer = cfg["Jwt:Issuer"] ?? "zenpharm";
+    private readonly string _audience = cfg["Jwt:Audience"] ?? "zenpharm-clients";
     private readonly int _accessTokenMinutes = int.Parse(cfg["Jwt:AccessTokenMinutes"] ?? "60");
     private readonly int _refreshTokenDays = int.Parse(cfg["Jwt:RefreshTokenDays"] ?? "7");
     private readonly int _refreshTokenDaysRememberMe = int.Parse(cfg["Jwt:RememberMeRefreshTokenDays"] ?? "30");

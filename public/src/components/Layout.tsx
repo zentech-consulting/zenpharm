@@ -5,6 +5,7 @@ import AiConsultant from '../features/ai-chat/AiConsultant'
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/services', label: 'Services' },
+  { to: '/pricing', label: 'Pricing' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ]
@@ -21,7 +22,7 @@ export default function Layout() {
       <header className="border-b border-surface-dark bg-white">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to="/" className="text-xl font-bold text-primary">
-            Zentech Biz
+            ZenPharm
           </Link>
           <ul className="flex gap-6">
             {navLinks.map((link) => (
@@ -46,7 +47,7 @@ export default function Layout() {
 
       <footer className="border-t border-surface-dark bg-primary py-8 text-white">
         <div className="mx-auto max-w-7xl px-6 text-center text-sm opacity-70">
-          &copy; {new Date().getFullYear()} Zentech Consulting. All rights reserved.
+          &copy; {new Date().getFullYear()} ZenPharm. All rights reserved.
         </div>
       </footer>
 

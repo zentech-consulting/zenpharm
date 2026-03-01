@@ -64,7 +64,7 @@ export default function AdminLayout() {
             fontSize: collapsed ? 16 : 18,
           }}
         >
-          {collapsed ? 'ZB' : 'Zentech Biz'}
+          {collapsed ? 'ZP' : 'ZenPharm'}
         </div>
         <Menu
           theme="dark"
