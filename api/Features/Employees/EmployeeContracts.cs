@@ -17,7 +17,7 @@ public sealed record CreateEmployeeRequest
     public string? Phone { get; init; }
 
     [Required, MaxLength(50)]
-    public string Role { get; init; } = "staff";
+    public string Role { get; init; } = "pharmacy_assistant";
 
     public bool IsActive { get; init; } = true;
 }
@@ -37,7 +37,7 @@ public sealed record UpdateEmployeeRequest
     public string? Phone { get; init; }
 
     [Required, MaxLength(50)]
-    public string Role { get; init; } = "staff";
+    public string Role { get; init; } = "pharmacy_assistant";
 
     public bool IsActive { get; init; } = true;
 }

@@ -9,8 +9,10 @@ using Api.Features.Bookings;
 using Api.Features.Clients;
 using Api.Features.Employees;
 using Api.Features.Knowledge;
+using Api.Features.MasterProducts;
 using Api.Features.Notifications;
 using Api.Features.Platform;
+using Api.Features.Products;
 using Api.Features.Reports;
 using Api.Features.Schedules;
 using Api.Features.Services;
@@ -130,6 +132,8 @@ if (emailDryRun)
 else
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IReportManager, ReportManager>();
+builder.Services.AddScoped<IMasterProductManager, MasterProductManager>();
+builder.Services.AddScoped<IProductManager, ProductManager>();
 builder.Services.AddSingleton<IProvisioningPipeline, ProvisioningPipeline>();
 
 // --- HTTP Clients ---
@@ -200,6 +204,8 @@ app.MapEmployeeEndpoints();
 app.MapAiChatEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapReportEndpoints();
+app.MapMasterProductEndpoints();
+app.MapProductEndpoints();
 app.MapPlatformEndpoints();
 app.MapStripeWebhookEndpoints();
 
