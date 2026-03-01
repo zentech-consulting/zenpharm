@@ -54,7 +54,7 @@ internal sealed class DevSeedService(
             // 6. Seed master products
             await SeedMasterProductsAsync(conn, ct);
 
-            logger.LogInformation("Dev seed complete. Admin user: admin (see seed data for password)");
+            logger.LogInformation("Dev seed complete — admin user seeded");
         }
         catch (Exception ex)
         {
