@@ -1,6 +1,7 @@
 using System.Text;
 using Api.Common;
 using Api.Common.Migrations;
+using Api.Common.Seeding;
 using Api.Common.Tenancy;
 using Api.Features.AiChat;
 using Api.Features.AiChat.Tools;
@@ -136,6 +137,10 @@ builder.Services.AddScoped<IMasterProductManager, MasterProductManager>();
 builder.Services.AddScoped<IProductManager, ProductManager>();
 builder.Services.AddSingleton<IProvisioningPipeline, ProvisioningPipeline>();
 
+// --- Dev Seed (Development only) ---
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddSingleton<IDevSeedService, DevSeedService>();
+
 // --- HTTP Clients ---
 builder.Services.AddHttpClient("Anthropic", client =>
 {
@@ -145,11 +150,18 @@ builder.Services.AddHttpClient("Anthropic", client =>
 
 var app = builder.Build();
 
-// --- Catalogue Database Migration ---
+// --- Catalogue Database Migration + Dev Seed ---
 using (var scope = app.Services.CreateScope())
 {
     var catalogMigration = scope.ServiceProvider.GetRequiredService<ICatalogMigration>();
     await catalogMigration.RunAllAsync();
+
+    if (app.Environment.IsDevelopment())
+    {
+        var devSeed = scope.ServiceProvider.GetService<IDevSeedService>();
+        if (devSeed is not null)
+            await devSeed.SeedAsync();
+    }
 }
 
 // --- Middleware ---
