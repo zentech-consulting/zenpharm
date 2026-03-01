@@ -356,7 +356,7 @@ public class AuthManagerTests
         var jwt = handler.ReadJwtToken(token);
 
         // Should use default issuer/audience
-        Assert.Equal("zentech-biz", jwt.Issuer);
-        Assert.Contains("zentech-biz-clients", jwt.Audiences);
+        Assert.Equal("zenpharm", jwt.Issuer);
+        Assert.Contains("zenpharm-clients", jwt.Audiences);
     }
 }

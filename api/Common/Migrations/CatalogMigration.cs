@@ -120,6 +120,44 @@ internal sealed class CatalogMigration(
                 CREATE INDEX IX_MasterProducts_Category ON dbo.MasterProducts (Category);
                 CREATE INDEX IX_MasterProducts_IsActive ON dbo.MasterProducts (IsActive) WHERE IsActive = 1;
             END
+            """),
+
+        ("005_MasterProducts_PharmacyColumns", """
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MasterProducts') AND name = 'GenericName')
+            BEGIN
+                ALTER TABLE dbo.MasterProducts ADD
+                    GenericName       NVARCHAR(200)  NULL,
+                    Brand             NVARCHAR(200)  NULL,
+                    Barcode           NVARCHAR(50)   NULL,
+                    ScheduleClass     NVARCHAR(20)   NOT NULL DEFAULT 'Unscheduled',
+                    PackSize          NVARCHAR(50)   NULL,
+                    ActiveIngredients NVARCHAR(1000) NULL,
+                    Warnings          NVARCHAR(2000) NULL,
+                    PbsItemCode       NVARCHAR(20)   NULL,
+                    ImageUrl          NVARCHAR(500)  NULL;
+
+                ALTER TABLE dbo.MasterProducts ADD
+                    CONSTRAINT CK_MasterProducts_ScheduleClass
+                    CHECK (ScheduleClass IN ('Unscheduled', 'S2', 'S3', 'S4'));
+
+                CREATE INDEX IX_MasterProducts_Barcode ON dbo.MasterProducts (Barcode) WHERE Barcode IS NOT NULL;
+                CREATE INDEX IX_MasterProducts_ScheduleClass ON dbo.MasterProducts (ScheduleClass);
+                CREATE INDEX IX_MasterProducts_GenericName ON dbo.MasterProducts (GenericName) WHERE GenericName IS NOT NULL;
+            END
+            """),
+
+        ("006_Tenants_PharmacyColumns", """
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Tenants') AND name = 'Abn')
+            BEGIN
+                ALTER TABLE dbo.Tenants ADD
+                    Abn               NVARCHAR(14)   NULL,
+                    AddressLine1      NVARCHAR(200)  NULL,
+                    AddressLine2      NVARCHAR(200)  NULL,
+                    Suburb            NVARCHAR(100)  NULL,
+                    State             NVARCHAR(10)   NULL,
+                    Postcode          NVARCHAR(10)   NULL,
+                    BusinessHoursJson NVARCHAR(MAX)  NULL;
+            END
             """)
     ];
 }

@@ -5,6 +5,9 @@ public sealed record DashboardSummary(
     int TotalBookings,
     int TotalEmployees,
     decimal Revenue,
+    int TotalProducts,
+    int LowStockCount,
+    int ExpiringCount,
     IReadOnlyList<DailyStat> DailyStats);
 
 public sealed record DailyStat(

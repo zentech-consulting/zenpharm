@@ -5,6 +5,9 @@ export interface DashboardSummary {
   totalBookings: number
   totalEmployees: number
   revenue: number
+  totalProducts: number
+  lowStockCount: number
+  expiringCount: number
   dailyStats: DailyStat[]
 }
 

@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Table, Button, Modal, Form, Input, Typography, Space, message } from 'antd'
+import { Table, Button, Modal, Form, Input, DatePicker, Typography, Space, message } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { Client } from '../api/clients'
 import { fetchClients, createClient, updateClient, deleteClient } from '../api/clients'
+import dayjs from 'dayjs'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -31,12 +32,16 @@ export default function ClientsPage() {
 
   const openModal = (record?: Client) => {
     setEditing(record ?? null)
-    form.setFieldsValue(record ?? { firstName: '', lastName: '', email: '', phone: '', notes: '' })
+    form.setFieldsValue(record
+      ? { ...record, dateOfBirth: record.dateOfBirth ? dayjs(record.dateOfBirth) : null }
+      : { firstName: '', lastName: '', email: '', phone: '', notes: '', dateOfBirth: null, allergies: '', medicationNotes: '', tags: '' }
+    )
     setModalOpen(true)
   }
 
   const handleSave = async () => {
-    const values = await form.validateFields()
+    const raw = await form.validateFields()
+    const values = { ...raw, dateOfBirth: raw.dateOfBirth ? raw.dateOfBirth.format('YYYY-MM-DD') : undefined }
     try {
       if (editing) {
         await updateClient(editing.id, values)
@@ -98,6 +103,10 @@ export default function ClientsPage() {
           <Form.Item name="email" label="Email"><Input type="email" /></Form.Item>
           <Form.Item name="phone" label="Phone"><Input /></Form.Item>
           <Form.Item name="notes" label="Notes"><Input.TextArea rows={3} /></Form.Item>
+          <Form.Item name="dateOfBirth" label="Date of Birth"><DatePicker style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="allergies" label="Allergies"><Input.TextArea rows={2} placeholder="e.g. Penicillin, Sulfa" /></Form.Item>
+          <Form.Item name="medicationNotes" label="Medication Notes"><Input.TextArea rows={2} placeholder="Current medications" /></Form.Item>
+          <Form.Item name="tags" label="Tags"><Input placeholder="e.g. diabetes,regular" /></Form.Item>
         </Form>
       </Modal>
     </>

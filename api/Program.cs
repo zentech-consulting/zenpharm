@@ -9,8 +9,10 @@ using Api.Features.Bookings;
 using Api.Features.Clients;
 using Api.Features.Employees;
 using Api.Features.Knowledge;
+using Api.Features.MasterProducts;
 using Api.Features.Notifications;
 using Api.Features.Platform;
+using Api.Features.Products;
 using Api.Features.Reports;
 using Api.Features.Schedules;
 using Api.Features.Services;
@@ -26,7 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opts =>
 {
-    opts.SwaggerDoc("v1", new() { Title = "Zentech Biz API", Version = "v1" });
+    opts.SwaggerDoc("v1", new() { Title = "ZenPharm API", Version = "v1" });
     opts.AddSecurityDefinition("Bearer", new()
     {
         Description = "JWT Bearer token. Enter: Bearer {token}",
@@ -54,8 +56,8 @@ var jwtKey = builder.Configuration["Jwt:SecretKey"]
 if (jwtKey.Length < 32)
     throw new InvalidOperationException("Jwt:SecretKey must be at least 32 characters.");
 
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "zentech-biz";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "zentech-biz-clients";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "zenpharm";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "zenpharm-clients";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts =>
@@ -130,6 +132,8 @@ if (emailDryRun)
 else
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IReportManager, ReportManager>();
+builder.Services.AddScoped<IMasterProductManager, MasterProductManager>();
+builder.Services.AddScoped<IProductManager, ProductManager>();
 builder.Services.AddSingleton<IProvisioningPipeline, ProvisioningPipeline>();
 
 // --- HTTP Clients ---
@@ -200,6 +204,8 @@ app.MapEmployeeEndpoints();
 app.MapAiChatEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapReportEndpoints();
+app.MapMasterProductEndpoints();
+app.MapProductEndpoints();
 app.MapPlatformEndpoints();
 app.MapStripeWebhookEndpoints();
 

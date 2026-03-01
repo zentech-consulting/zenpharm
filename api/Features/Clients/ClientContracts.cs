@@ -18,6 +18,17 @@ public sealed record CreateClientRequest
 
     [MaxLength(2000)]
     public string? Notes { get; init; }
+
+    public DateOnly? DateOfBirth { get; init; }
+
+    [MaxLength(2000)]
+    public string? Allergies { get; init; }
+
+    [MaxLength(2000)]
+    public string? MedicationNotes { get; init; }
+
+    [MaxLength(500)]
+    public string? Tags { get; init; }
 }
 
 public sealed record UpdateClientRequest
@@ -36,6 +47,17 @@ public sealed record UpdateClientRequest
 
     [MaxLength(2000)]
     public string? Notes { get; init; }
+
+    public DateOnly? DateOfBirth { get; init; }
+
+    [MaxLength(2000)]
+    public string? Allergies { get; init; }
+
+    [MaxLength(2000)]
+    public string? MedicationNotes { get; init; }
+
+    [MaxLength(500)]
+    public string? Tags { get; init; }
 }
 
 public sealed record ClientDto(
@@ -45,6 +67,10 @@ public sealed record ClientDto(
     string? Email,
     string? Phone,
     string? Notes,
+    DateOnly? DateOfBirth,
+    string? Allergies,
+    string? MedicationNotes,
+    string? Tags,
     DateTimeOffset CreatedAt);
 
 public sealed record ClientListResponse(

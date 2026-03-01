@@ -1,23 +1,23 @@
-import { Heart, Target, Users } from 'lucide-react'
+import { Heart, Target, Shield } from 'lucide-react'
 
 const values = [
   {
     icon: Target,
     title: 'Our Mission',
     description:
-      'To empower businesses with intelligent, tailored management solutions that streamline operations and drive growth.',
+      'To empower Australian independent pharmacies with modern, affordable technology that simplifies daily operations and improves patient outcomes.',
   },
   {
-    icon: Users,
-    title: 'Our Team',
+    icon: Shield,
+    title: 'Built for Pharmacy',
     description:
-      'A passionate team of consultants, developers, and industry specialists dedicated to delivering excellence.',
+      'Designed from the ground up with PBS codes, schedule classes, stock tracking, and patient records — not a generic tool bolted onto pharmacy.',
   },
   {
     icon: Heart,
-    title: 'Our Values',
+    title: 'Community First',
     description:
-      'Innovation, integrity, and client-first thinking guide everything we do. Your success is our success.',
+      'We believe independent pharmacies are the backbone of community healthcare. Our platform helps you compete with the chains while staying local.',
   },
 ]
 
@@ -26,11 +26,11 @@ export default function AboutPage() {
     <>
       <section className="bg-primary px-6 py-20 text-white">
         <div className="mx-auto max-w-4xl text-center">
-          <h1 className="mb-6 text-4xl font-bold">About Us</h1>
+          <h1 className="mb-6 text-4xl font-bold">About ZenPharm</h1>
           <p className="text-lg leading-relaxed opacity-80">
-            We build intelligent business management platforms tailored to your
-            industry. From booking systems to AI-powered customer support, we
-            help you work smarter.
+            We build smart pharmacy management software for Australian independent
+            pharmacies — helping you manage inventory, serve patients better, and
+            grow your business.
           </p>
         </div>
       </section>
@@ -39,16 +39,15 @@ export default function AboutPage() {
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-4 text-3xl font-bold text-primary">Our Story</h2>
           <p className="mb-6 text-lg leading-relaxed text-gray-600">
-            Founded with the belief that every business deserves enterprise-grade
-            tools, we set out to create a platform that adapts to any industry.
-            Whether you run a salon, a tutoring centre, a clinic, or a
-            consultancy, our platform moulds itself to your workflow.
+            ZenPharm was born from a simple observation: independent pharmacies
+            across Australia are running on outdated systems or expensive enterprise
+            software that doesn&apos;t fit their needs. We set out to change that.
           </p>
           <p className="text-lg leading-relaxed text-gray-600">
-            Today, we serve businesses across multiple verticals, each with a
-            customised experience built on our robust core platform. Our AI
-            consultant learns your business and helps your customers around the
-            clock.
+            Our platform brings together a shared product catalogue, real-time
+            inventory management, patient records, scheduling, and AI-powered
+            customer support — all in one affordable, cloud-based solution designed
+            specifically for community pharmacies.
           </p>
         </div>
       </section>

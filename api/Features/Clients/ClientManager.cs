@@ -12,10 +12,11 @@ internal sealed class ClientManager(
         using var conn = await db.CreateAsync();
 
         var sql = """
-            INSERT INTO dbo.Clients (FirstName, LastName, Email, Phone, Notes)
+            INSERT INTO dbo.Clients (FirstName, LastName, Email, Phone, Notes, DateOfBirth, Allergies, MedicationNotes, Tags)
             OUTPUT INSERTED.Id, INSERTED.FirstName, INSERTED.LastName, INSERTED.Email,
-                   INSERTED.Phone, INSERTED.Notes, INSERTED.CreatedAt
-            VALUES (@FirstName, @LastName, @Email, @Phone, @Notes)
+                   INSERTED.Phone, INSERTED.Notes, INSERTED.DateOfBirth, INSERTED.Allergies,
+                   INSERTED.MedicationNotes, INSERTED.Tags, INSERTED.CreatedAt
+            VALUES (@FirstName, @LastName, @Email, @Phone, @Notes, @DateOfBirth, @Allergies, @MedicationNotes, @Tags)
             """;
 
         logger.LogInformation("Creating client: {FirstName} {LastName}", request.FirstName, request.LastName);
@@ -31,7 +32,8 @@ internal sealed class ClientManager(
         using var conn = await db.CreateAsync();
 
         var sql = """
-            SELECT Id, FirstName, LastName, Email, Phone, Notes, CreatedAt
+            SELECT Id, FirstName, LastName, Email, Phone, Notes,
+                   DateOfBirth, Allergies, MedicationNotes, Tags, CreatedAt
             FROM dbo.Clients
             WHERE Id = @Id
             """;
@@ -51,7 +53,8 @@ internal sealed class ClientManager(
         var countSql = $"SELECT COUNT(*) FROM dbo.Clients {whereClause}";
 
         var listSql = $"""
-            SELECT Id, FirstName, LastName, Email, Phone, Notes, CreatedAt
+            SELECT Id, FirstName, LastName, Email, Phone, Notes,
+                   DateOfBirth, Allergies, MedicationNotes, Tags, CreatedAt
             FROM dbo.Clients
             {whereClause}
             ORDER BY CreatedAt DESC
@@ -81,9 +84,13 @@ internal sealed class ClientManager(
         var sql = """
             UPDATE dbo.Clients
             SET FirstName = @FirstName, LastName = @LastName, Email = @Email,
-                Phone = @Phone, Notes = @Notes, UpdatedAt = SYSUTCDATETIME()
+                Phone = @Phone, Notes = @Notes,
+                DateOfBirth = @DateOfBirth, Allergies = @Allergies,
+                MedicationNotes = @MedicationNotes, Tags = @Tags,
+                UpdatedAt = SYSUTCDATETIME()
             OUTPUT INSERTED.Id, INSERTED.FirstName, INSERTED.LastName, INSERTED.Email,
-                   INSERTED.Phone, INSERTED.Notes, INSERTED.CreatedAt
+                   INSERTED.Phone, INSERTED.Notes, INSERTED.DateOfBirth, INSERTED.Allergies,
+                   INSERTED.MedicationNotes, INSERTED.Tags, INSERTED.CreatedAt
             WHERE Id = @Id
             """;
 
@@ -97,7 +104,11 @@ internal sealed class ClientManager(
                 request.LastName,
                 request.Email,
                 request.Phone,
-                request.Notes
+                request.Notes,
+                request.DateOfBirth,
+                request.Allergies,
+                request.MedicationNotes,
+                request.Tags
             }, cancellationToken: ct));
     }
 
