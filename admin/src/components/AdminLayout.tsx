@@ -12,6 +12,7 @@ import {
   RobotOutlined,
   BookOutlined,
   BarChartOutlined,
+  MedicineBoxOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -22,6 +23,7 @@ const { Header, Sider, Content } = Layout
 const menuItems = [
   { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/clients', icon: <TeamOutlined />, label: 'Clients' },
+  { key: '/products', icon: <MedicineBoxOutlined />, label: 'Products' },
   { key: '/services', icon: <ShopOutlined />, label: 'Services' },
   { key: '/bookings', icon: <CalendarOutlined />, label: 'Bookings' },
   { key: '/schedules', icon: <ScheduleOutlined />, label: 'Schedules' },

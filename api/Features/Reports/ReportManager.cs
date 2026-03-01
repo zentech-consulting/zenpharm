@@ -62,9 +62,24 @@ internal sealed class ReportManager(
         var dailyStats = await conn.QueryAsync<DailyStat>(
             new CommandDefinition(dailyStatsSql, parameters, cancellationToken: ct));
 
-        logger.LogInformation("Dashboard summary generated: {Clients} clients, {Bookings} bookings, {Revenue} revenue",
-            totalClients, totalBookings, revenue);
+        int totalProducts = 0, lowStockCount = 0, expiringCount = 0;
+        try
+        {
+            totalProducts = await conn.ExecuteScalarAsync<int>(
+                new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts", cancellationToken: ct));
+            lowStockCount = await conn.ExecuteScalarAsync<int>(
+                new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts WHERE StockQuantity <= ReorderLevel", cancellationToken: ct));
+            expiringCount = await conn.ExecuteScalarAsync<int>(
+                new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, GETUTCDATE())", cancellationToken: ct));
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Inventory stats unavailable — TenantProducts table may not exist yet");
+        }
 
-        return new DashboardSummary(totalClients, totalBookings, totalEmployees, revenue, dailyStats.ToList());
+        logger.LogInformation("Dashboard summary generated: {Clients} clients, {Bookings} bookings, {Revenue} revenue, {Products} products",
+            totalClients, totalBookings, revenue, totalProducts);
+
+        return new DashboardSummary(totalClients, totalBookings, totalEmployees, revenue, totalProducts, lowStockCount, expiringCount, dailyStats.ToList());
     }
 }

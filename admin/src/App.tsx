@@ -10,6 +10,7 @@ import BookingsPage from './pages/BookingsPage'
 import SchedulesPage from './pages/SchedulesPage'
 import EmployeesPage from './pages/EmployeesPage'
 import KnowledgePage from './pages/KnowledgePage'
+import ProductsPage from './pages/ProductsPage'
 
 const theme = {
   token: {
@@ -32,6 +33,7 @@ export default function App() {
         >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/products" element={<ProductsPage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/bookings" element={<BookingsPage />} />
           <Route path="/schedules" element={<SchedulesPage />} />

@@ -7,6 +7,10 @@ export interface Client {
   email?: string
   phone?: string
   notes?: string
+  dateOfBirth?: string
+  allergies?: string
+  medicationNotes?: string
+  tags?: string
   createdAt: string
 }
 

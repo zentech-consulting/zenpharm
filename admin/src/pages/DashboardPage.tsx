@@ -5,6 +5,9 @@ import {
   CalendarOutlined,
   UserOutlined,
   DollarOutlined,
+  MedicineBoxOutlined,
+  WarningOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons'
 import { fetchDashboardSummary, type DashboardSummary } from '../api/reports'
 
@@ -35,6 +38,9 @@ export default function DashboardPage() {
     { title: 'Total Bookings', value: summary?.totalBookings ?? 0, icon: <CalendarOutlined />, colour: '#0f3460' },
     { title: 'Active Staff', value: summary?.totalEmployees ?? 0, icon: <UserOutlined />, colour: '#16213e' },
     { title: 'Revenue', value: summary?.revenue ?? 0, icon: <DollarOutlined />, colour: '#e94560', prefix: '$' },
+    { title: 'Total Products', value: summary?.totalProducts ?? 0, icon: <MedicineBoxOutlined />, colour: '#2e86de' },
+    { title: 'Low Stock', value: summary?.lowStockCount ?? 0, icon: <WarningOutlined />, colour: '#ee5a24' },
+    { title: 'Expiring Soon', value: summary?.expiringCount ?? 0, icon: <ClockCircleOutlined />, colour: '#f39c12' },
   ]
 
   return (
