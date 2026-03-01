@@ -77,7 +77,7 @@
 
 ### Dev Seed Data — E2E Testing Support
 
-- **状态**: in_progress
+- **状态**: completed
 - **优先级**: high
 - **创建**: 2026-03-02
 - **更新**: 2026-03-02
@@ -92,15 +92,15 @@
 
 ### Pre-Deployment Blockers
 
-- **状态**: pending
+- **状态**: completed
 - **优先级**: critical
 - **创建**: 2026-03-02
 - **更新**: 2026-03-02
-- **描述**: Issues surfaced by security review that must be resolved before first production deployment
+- **描述**: Issues surfaced by security review, resolved in PR #3
 - **子任务**:
-  1. [ ] **ConnectionString encryption** — Tenants.ConnectionString stored in plain text; encrypt at rest via Azure Key Vault / Always Encrypted / managed identity (pre-existing TODO in CatalogMigration.cs:42)
-  2. [ ] **appsettings.Production.json** — Create production config to ensure Email.DryRun=false and SmsBroadcast.DryRun=false; add startup validation warning if DryRun=true in non-Development
-  3. [ ] **User-secrets migration** — Developers using zenpharm must re-init secrets after UserSecretsId change from zentech-biz-api to zenpharm-api
+  1. [x] **ConnectionString encryption** — AES-256-GCM via ConnectionStringProtector; key from `Security:ConnectionStringKey` config; required in production, dev passthrough; backward compatible
+  2. [x] **appsettings.Production.json** — DryRun=false for Email/SMS/AiChat; startup warning if DryRun=true in non-Development
+  3. [x] **User-secrets migration** — UserSecretsId changed to zenpharm-api; devs must re-init secrets
 
 ### Phase 2.5: ZenPharm Premium Features
 
