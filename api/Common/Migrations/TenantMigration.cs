@@ -318,6 +318,20 @@ internal sealed class TenantMigration(
                 CREATE INDEX IX_StockMovements_TenantProductId ON dbo.StockMovements (TenantProductId);
                 CREATE INDEX IX_StockMovements_CreatedAt ON dbo.StockMovements (CreatedAt);
             END
+            """),
+
+        ("015_RefreshTokens_LastUsedAt", """
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.RefreshTokens') AND name = 'LastUsedAt')
+            BEGIN
+                ALTER TABLE dbo.RefreshTokens ADD LastUsedAt DATETIMEOFFSET NULL;
+            END
+            """),
+
+        ("016_StockMovements_ApprovedBy", """
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.StockMovements') AND name = 'ApprovedBy')
+            BEGIN
+                ALTER TABLE dbo.StockMovements ADD ApprovedBy NVARCHAR(200) NULL;
+            END
             """)
     ];
 }

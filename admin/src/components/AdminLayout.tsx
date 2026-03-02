@@ -13,6 +13,7 @@ import {
   BookOutlined,
   BarChartOutlined,
   MedicineBoxOutlined,
+  LaptopOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -31,6 +32,7 @@ const menuItems = [
   { key: '/ai-chat', icon: <RobotOutlined />, label: 'AI Chat' },
   { key: '/knowledge', icon: <BookOutlined />, label: 'Knowledge' },
   { key: '/reports', icon: <BarChartOutlined />, label: 'Reports' },
+  { key: '/sessions', icon: <LaptopOutlined />, label: 'Sessions' },
 ]
 
 export default function AdminLayout() {

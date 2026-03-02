@@ -6,4 +6,7 @@ public interface IAuthManager
     Task<RefreshTokenResponse?> RefreshAccessTokenAsync(string refreshToken, CancellationToken ct = default);
     Task<bool> RevokeRefreshTokenAsync(string refreshToken, CancellationToken ct = default);
     Task<AdminUserDto?> GetCurrentUserAsync(Guid userId, CancellationToken ct = default);
+    Task<SessionListResponse?> GetActiveSessionsAsync(Guid tenantId, CancellationToken ct = default);
+    Task<SessionSummaryDto?> GetSessionSummaryAsync(Guid tenantId, CancellationToken ct = default);
+    Task<bool> RevokeSessionByIdAsync(Guid sessionId, CancellationToken ct = default);
 }

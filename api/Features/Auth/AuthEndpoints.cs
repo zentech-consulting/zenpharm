@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Api.Common.Tenancy;
 using Microsoft.AspNetCore.Http;
 
 namespace Api.Features.Auth;
@@ -47,6 +48,42 @@ public static class AuthEndpoints
         })
         .RequireAuthorization()
         .WithOpenApi(op => { op.Summary = "Get current authenticated user"; return op; });
+
+        // --- Session Management Endpoints ---
+
+        g.MapGet("sessions", async Task<IResult> (IAuthManager mgr, HttpContext ctx, CancellationToken ct) =>
+        {
+            var tenantContext = ctx.Items["TenantContext"] as TenantContext;
+            if (tenantContext is null) return Results.BadRequest("Tenant context required");
+
+            var result = await mgr.GetActiveSessionsAsync(tenantContext.TenantId, ct);
+            return result is not null ? Results.Ok(result) : Results.NotFound();
+        })
+        .RequireAuthorization()
+        .WithOpenApi(op => { op.Summary = "List active sessions for this tenant"; return op; });
+
+        g.MapGet("sessions/summary", async Task<IResult> (IAuthManager mgr, HttpContext ctx, CancellationToken ct) =>
+        {
+            var tenantContext = ctx.Items["TenantContext"] as TenantContext;
+            if (tenantContext is null) return Results.BadRequest("Tenant context required");
+
+            var result = await mgr.GetSessionSummaryAsync(tenantContext.TenantId, ct);
+            return result is not null ? Results.Ok(result) : Results.NotFound();
+        })
+        .RequireAuthorization()
+        .WithOpenApi(op => { op.Summary = "Get active session count vs plan limit"; return op; });
+
+        g.MapDelete("sessions/{id:guid}", async Task<IResult> (Guid id, IAuthManager mgr, HttpContext ctx, CancellationToken ct) =>
+        {
+            var role = ctx.User.FindFirstValue(ClaimTypes.Role);
+            if (role is not ("Admin" or "SuperAdmin" or "Manager"))
+                return Results.Forbid();
+
+            var revoked = await mgr.RevokeSessionByIdAsync(id, ct);
+            return revoked ? Results.Ok() : Results.NotFound();
+        })
+        .RequireAuthorization()
+        .WithOpenApi(op => { op.Summary = "Revoke a specific session (admin/manager only)"; return op; });
 
         return app;
     }

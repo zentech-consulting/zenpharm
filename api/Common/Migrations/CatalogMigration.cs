@@ -166,6 +166,13 @@ internal sealed class CatalogMigration(
                     Postcode          NVARCHAR(10)   NULL,
                     BusinessHoursJson NVARCHAR(MAX)  NULL;
             END
+            """),
+
+        ("007_Plans_MaxConcurrentSessions", """
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Plans') AND name = 'MaxConcurrentSessions')
+            BEGIN
+                ALTER TABLE dbo.Plans ADD MaxConcurrentSessions INT NOT NULL DEFAULT 5;
+            END
             """)
     ];
 }

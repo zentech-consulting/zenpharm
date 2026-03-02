@@ -44,3 +44,36 @@ export async function logout(): Promise<void> {
 export async function getCurrentUser(): Promise<LoginResponse['user']> {
   return apiFetch('/api/auth/me')
 }
+
+// --- Session Management ---
+
+export interface ActiveSession {
+  id: string
+  username: string
+  createdByIp: string | null
+  createdAt: string
+  lastUsedAt: string | null
+}
+
+export interface SessionSummary {
+  activeSessions: number
+  maxSessions: number
+  planName: string
+}
+
+export interface SessionListResponse {
+  sessions: ActiveSession[]
+  maxSessions: number
+}
+
+export async function fetchActiveSessions(): Promise<SessionListResponse> {
+  return apiFetch<SessionListResponse>('/api/auth/sessions')
+}
+
+export async function fetchSessionSummary(): Promise<SessionSummary> {
+  return apiFetch<SessionSummary>('/api/auth/sessions/summary')
+}
+
+export async function revokeSession(sessionId: string): Promise<void> {
+  return apiFetch<void>(`/api/auth/sessions/${sessionId}`, { method: 'DELETE' })
+}
