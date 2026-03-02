@@ -8,21 +8,32 @@ internal sealed class CatalogMigration(
 {
     public async Task RunAllAsync(CancellationToken ct = default)
     {
-        try
+        const int maxRetries = 3;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            using var conn = await catalogDb.CreateAsync();
-
-            foreach (var (name, sql) in CatalogDdl)
+            try
             {
-                logger.LogInformation("Running catalogue migration: {Name}", name);
-                await conn.ExecuteAsync(new CommandDefinition(sql, cancellationToken: ct));
-            }
+                using var conn = await catalogDb.CreateAsync();
 
-            logger.LogInformation("Catalogue migrations completed successfully");
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Catalogue migration skipped — connection unavailable");
+                foreach (var (name, sql) in CatalogDdl)
+                {
+                    logger.LogInformation("Running catalogue migration: {Name}", name);
+                    await conn.ExecuteAsync(new CommandDefinition(sql, cancellationToken: ct));
+                }
+
+                logger.LogInformation("Catalogue migrations completed successfully");
+                return;
+            }
+            catch (Exception ex) when (attempt < maxRetries)
+            {
+                logger.LogWarning(ex, "Catalogue migration attempt {Attempt}/{Max} failed — retrying in {Delay}s",
+                    attempt, maxRetries, attempt * 5);
+                await Task.Delay(attempt * 5000, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Catalogue migration skipped — connection unavailable after {Max} attempts", maxRetries);
+            }
         }
     }
 
@@ -136,13 +147,10 @@ internal sealed class CatalogMigration(
                     PbsItemCode       NVARCHAR(20)   NULL,
                     ImageUrl          NVARCHAR(500)  NULL;
 
-                ALTER TABLE dbo.MasterProducts ADD
-                    CONSTRAINT CK_MasterProducts_ScheduleClass
-                    CHECK (ScheduleClass IN ('Unscheduled', 'S2', 'S3', 'S4'));
-
-                CREATE INDEX IX_MasterProducts_Barcode ON dbo.MasterProducts (Barcode) WHERE Barcode IS NOT NULL;
-                CREATE INDEX IX_MasterProducts_ScheduleClass ON dbo.MasterProducts (ScheduleClass);
-                CREATE INDEX IX_MasterProducts_GenericName ON dbo.MasterProducts (GenericName) WHERE GenericName IS NOT NULL;
+                EXEC('ALTER TABLE dbo.MasterProducts ADD CONSTRAINT CK_MasterProducts_ScheduleClass CHECK (ScheduleClass IN (''Unscheduled'', ''S2'', ''S3'', ''S4''))');
+                EXEC('CREATE INDEX IX_MasterProducts_Barcode ON dbo.MasterProducts (Barcode) WHERE Barcode IS NOT NULL');
+                EXEC('CREATE INDEX IX_MasterProducts_ScheduleClass ON dbo.MasterProducts (ScheduleClass)');
+                EXEC('CREATE INDEX IX_MasterProducts_GenericName ON dbo.MasterProducts (GenericName) WHERE GenericName IS NOT NULL');
             END
             """),
 
