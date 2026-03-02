@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   Table, Button, Modal, Form, Input, InputNumber, DatePicker, Switch,
-  Typography, Space, Tag, Tabs, message, Checkbox, Select,
+  Typography, Space, Tag, Tabs, Alert, message, Checkbox, Select,
 } from 'antd'
-import { EditOutlined, DeleteOutlined, ImportOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, ImportOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import type { Product } from '../api/products'
 import type { MasterProduct } from '../api/masterProducts'
 import { fetchProducts, updateProduct, deleteProduct, importProducts, recordStockMovement } from '../api/products'
@@ -122,7 +122,7 @@ export default function ProductsPage() {
 
   const openStockModal = (record: Product) => {
     setStockProduct(record)
-    stockForm.setFieldsValue({ movementType: 'stock_in', quantity: 1, reference: '', notes: '' })
+    stockForm.setFieldsValue({ movementType: 'stock_in', quantity: 1, reference: '', notes: '', approvedBy: '' })
     setStockModalOpen(true)
   }
 
@@ -134,10 +134,13 @@ export default function ProductsPage() {
       message.success('Stock movement recorded')
       setStockModalOpen(false)
       loadProducts()
-    } catch {
-      message.error('Failed to record stock movement')
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to record stock movement'
+      message.error(errorMsg)
     }
   }
+
+  const stockMovementType = Form.useWatch('movementType', stockForm)
 
   const productColumns = [
     {
@@ -169,7 +172,16 @@ export default function ProductsPage() {
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(r)} />
           <Button size="small" onClick={() => openStockModal(r)}>Stock</Button>
-          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(r.id)} />
+          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => {
+            Modal.confirm({
+              title: 'Delete this product?',
+              icon: <ExclamationCircleOutlined />,
+              content: `This will permanently remove "${r.customName ?? r.masterProductName}" from your inventory.`,
+              okText: 'Delete',
+              okType: 'danger',
+              onOk: () => handleDelete(r.id),
+            })
+          }} />
         </Space>
       ),
     },
@@ -252,8 +264,32 @@ export default function ProductsPage() {
       </Modal>
 
       <Modal title={`Stock Movement — ${stockProduct?.customName ?? stockProduct?.masterProductName ?? ''}`}
-        open={stockModalOpen} onOk={handleStockMovement} onCancel={() => setStockModalOpen(false)} destroyOnClose>
+        open={stockModalOpen}
+        onOk={handleStockMovement}
+        onCancel={() => setStockModalOpen(false)}
+        okButtonProps={{
+          disabled: stockProduct?.scheduleClass === 'S4' && stockMovementType === 'stock_out',
+        }}
+        destroyOnClose>
         <Form form={stockForm} layout="vertical">
+          {stockProduct?.scheduleClass === 'S4' && stockMovementType === 'stock_out' && (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="Prescription Only (S4)"
+              description="S4 products cannot be dispensed via the admin panel. Prescription dispensing must be handled through the dispensary system."
+            />
+          )}
+          {stockProduct?.scheduleClass === 'S3' && stockMovementType === 'stock_out' && (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="Pharmacist Only (S3)"
+              description="This product requires pharmacist approval for stock out. Please enter the approving pharmacist's name below."
+            />
+          )}
           <Form.Item name="movementType" label="Type" rules={[{ required: true }]}>
             <Select options={[
               { value: 'stock_in', label: 'Stock In' },
@@ -266,6 +302,15 @@ export default function ProductsPage() {
           <Form.Item name="quantity" label="Quantity" rules={[{ required: true }]}>
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
+          {stockProduct?.scheduleClass === 'S3' && stockMovementType === 'stock_out' && (
+            <Form.Item
+              name="approvedBy"
+              label="Approved By (Pharmacist)"
+              rules={[{ required: true, message: 'Pharmacist approval is required for S3 products' }]}
+            >
+              <Input placeholder="Enter pharmacist name" />
+            </Form.Item>
+          )}
           <Form.Item name="reference" label="Reference"><Input /></Form.Item>
           <Form.Item name="notes" label="Notes"><Input.TextArea rows={2} /></Form.Item>
         </Form>

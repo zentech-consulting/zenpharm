@@ -11,6 +11,8 @@ import SchedulesPage from './pages/SchedulesPage'
 import EmployeesPage from './pages/EmployeesPage'
 import KnowledgePage from './pages/KnowledgePage'
 import ProductsPage from './pages/ProductsPage'
+import SessionsPage from './pages/SessionsPage'
+import ReportsPage from './pages/ReportsPage'
 
 const theme = {
   token: {
@@ -39,6 +41,8 @@ export default function App() {
           <Route path="/schedules" element={<SchedulesPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
           <Route path="/knowledge" element={<KnowledgePage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/sessions" element={<SessionsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

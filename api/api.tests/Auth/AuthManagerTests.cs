@@ -38,9 +38,11 @@ public class AuthManagerTests
     private static AuthManager CreateManager(IConfiguration? config = null)
     {
         var tenantDb = Substitute.For<ITenantDb>();
+        var catalogDb = Substitute.For<ICatalogDb>();
 
         return new AuthManager(
             tenantDb,
+            catalogDb,
             config ?? BuildConfig(),
             NullLogger<AuthManager>.Instance);
     }
@@ -99,6 +101,73 @@ public class AuthManagerTests
         Assert.Equal("", req.Username);
         Assert.Equal("", req.Password);
         Assert.False(req.RememberMe);
+    }
+
+    // ================================================================
+    // Session DTO Tests
+    // ================================================================
+
+    [Fact]
+    public void ActiveSessionDto_RecordEquality()
+    {
+        var id = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+        var a = new ActiveSessionDto(id, "admin", "127.0.0.1", now, now);
+        var b = new ActiveSessionDto(id, "admin", "127.0.0.1", now, now);
+
+        Assert.Equal(a, b);
+    }
+
+    [Fact]
+    public void ActiveSessionDto_NullableFields()
+    {
+        var dto = new ActiveSessionDto(Guid.NewGuid(), "user", null, DateTimeOffset.UtcNow, null);
+
+        Assert.Null(dto.CreatedByIp);
+        Assert.Null(dto.LastUsedAt);
+    }
+
+    [Fact]
+    public void SessionSummaryDto_RecordEquality()
+    {
+        var a = new SessionSummaryDto(3, 5, "Premium");
+        var b = new SessionSummaryDto(3, 5, "Premium");
+
+        Assert.Equal(a, b);
+    }
+
+    [Fact]
+    public void SessionSummaryDto_Values()
+    {
+        var summary = new SessionSummaryDto(2, 10, "Enterprise");
+
+        Assert.Equal(2, summary.ActiveSessions);
+        Assert.Equal(10, summary.MaxSessions);
+        Assert.Equal("Enterprise", summary.PlanName);
+    }
+
+    [Fact]
+    public void SessionListResponse_EmptySessions()
+    {
+        var response = new SessionListResponse(Array.Empty<ActiveSessionDto>(), 5);
+
+        Assert.Empty(response.Sessions);
+        Assert.Equal(5, response.MaxSessions);
+    }
+
+    [Fact]
+    public void SessionListResponse_WithSessions()
+    {
+        var sessions = new List<ActiveSessionDto>
+        {
+            new(Guid.NewGuid(), "admin", "10.0.0.1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
+            new(Guid.NewGuid(), "manager", "10.0.0.2", DateTimeOffset.UtcNow, null),
+        };
+
+        var response = new SessionListResponse(sessions, 10);
+
+        Assert.Equal(2, response.Sessions.Count);
+        Assert.Equal(10, response.MaxSessions);
     }
 
     // ================================================================
@@ -310,9 +379,10 @@ public class AuthManagerTests
             .Build();
 
         var tenantDb = Substitute.For<ITenantDb>();
+        var catalogDb = Substitute.For<ICatalogDb>();
 
         Assert.Throws<InvalidOperationException>(() =>
-            new AuthManager(tenantDb, config, NullLogger<AuthManager>.Instance));
+            new AuthManager(tenantDb, catalogDb, config, NullLogger<AuthManager>.Instance));
     }
 
     [Fact]
@@ -326,9 +396,10 @@ public class AuthManagerTests
             .Build();
 
         var tenantDb = Substitute.For<ITenantDb>();
+        var catalogDb = Substitute.For<ICatalogDb>();
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            new AuthManager(tenantDb, config, NullLogger<AuthManager>.Instance));
+            new AuthManager(tenantDb, catalogDb, config, NullLogger<AuthManager>.Instance));
         Assert.Contains("at least 32 characters", ex.Message);
     }
 

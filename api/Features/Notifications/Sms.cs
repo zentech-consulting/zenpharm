@@ -14,7 +14,8 @@ public static class Sms
         ILogger logger,
         string phoneNumber,
         string message,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        HttpClient? externalClient = null)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
             return SmsSendResult.Fail("Phone number is required");
@@ -45,30 +46,38 @@ public static class Sms
 
         try
         {
-            using var httpClient = new HttpClient();
-            var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            var ownsClient = externalClient is null;
+            var httpClient = externalClient ?? new HttpClient();
+            try
             {
-                ["username"] = username,
-                ["password"] = password,
-                ["to"] = normalised,
-                ["from"] = from,
-                ["message"] = message
-            });
+                var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["username"] = username,
+                    ["password"] = password,
+                    ["to"] = normalised,
+                    ["from"] = from,
+                    ["message"] = message
+                });
 
-            var response = await httpClient.PostAsync(
-                "https://api.smsbroadcast.com.au/api-adv.php",
-                content, ct);
+                var response = await httpClient.PostAsync(
+                    "https://api.smsbroadcast.com.au/api-adv.php",
+                    content, ct);
 
-            var body = await response.Content.ReadAsStringAsync(ct);
+                var body = await response.Content.ReadAsStringAsync(ct);
 
-            if (body.StartsWith("OK:", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.LogInformation("SMS sent successfully to {Phone}", maskedPhone);
-                return SmsSendResult.Ok();
+                if (body.StartsWith("OK:", StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.LogInformation("SMS sent successfully to {Phone}", maskedPhone);
+                    return SmsSendResult.Ok();
+                }
+
+                logger.LogWarning("SMS provider returned: {Response} for {Phone}", body, maskedPhone);
+                return SmsSendResult.Fail($"SMS provider error: {body}");
             }
-
-            logger.LogWarning("SMS provider returned: {Response} for {Phone}", body, maskedPhone);
-            return SmsSendResult.Fail($"SMS provider error: {body}");
+            finally
+            {
+                if (ownsClient) httpClient.Dispose();
+            }
         }
         catch (Exception ex)
         {

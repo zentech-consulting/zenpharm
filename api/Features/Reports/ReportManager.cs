@@ -70,7 +70,7 @@ internal sealed class ReportManager(
             lowStockCount = await conn.ExecuteScalarAsync<int>(
                 new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts WHERE StockQuantity <= ReorderLevel", cancellationToken: ct));
             expiringCount = await conn.ExecuteScalarAsync<int>(
-                new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, GETUTCDATE())", cancellationToken: ct));
+                new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, SYSUTCDATETIME())", cancellationToken: ct));
         }
         catch (Exception ex)
         {
@@ -81,5 +81,135 @@ internal sealed class ReportManager(
             totalClients, totalBookings, revenue, totalProducts);
 
         return new DashboardSummary(totalClients, totalBookings, totalEmployees, revenue, totalProducts, lowStockCount, expiringCount, dailyStats.ToList());
+    }
+
+    public async Task<TopSellingProductsReport> GetTopSellingProductsAsync(DateOnly? from, DateOnly? to, int limit, CancellationToken ct = default)
+    {
+        using var conn = await db.CreateAsync();
+
+        var conditions = new List<string> { "sm.MovementType = 'stock_out'" };
+        if (from.HasValue) conditions.Add("CAST(sm.CreatedAt AS DATE) >= @From");
+        if (to.HasValue) conditions.Add("CAST(sm.CreatedAt AS DATE) <= @To");
+        var whereClause = "WHERE " + string.Join(" AND ", conditions);
+
+        var totalMovements = await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition(
+                $"SELECT COUNT(*) FROM dbo.StockMovements sm {whereClause}",
+                new { From = from, To = to }, cancellationToken: ct));
+
+        var sql = $"""
+            SELECT TOP(@Limit)
+                tp.Id AS ProductId,
+                ISNULL(tp.CustomName, tp.MasterProductName) AS ProductName,
+                tp.Brand,
+                tp.Category,
+                SUM(sm.Quantity) AS TotalSold,
+                SUM(sm.Quantity * ISNULL(tp.CustomPrice, tp.DefaultPrice)) AS TotalRevenue
+            FROM dbo.StockMovements sm
+            INNER JOIN dbo.TenantProducts tp ON tp.Id = sm.TenantProductId
+            {whereClause}
+            GROUP BY tp.Id, tp.CustomName, tp.MasterProductName, tp.Brand, tp.Category, tp.CustomPrice, tp.DefaultPrice
+            ORDER BY SUM(sm.Quantity) DESC
+            """;
+
+        var items = await conn.QueryAsync<TopSellingProductDto>(
+            new CommandDefinition(sql, new { From = from, To = to, Limit = limit }, cancellationToken: ct));
+
+        return new TopSellingProductsReport(items.ToList(), totalMovements);
+    }
+
+    public async Task<RevenueByCategoryReport> GetRevenueByCategoryAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        using var conn = await db.CreateAsync();
+
+        var conditions = new List<string>();
+        if (from.HasValue) conditions.Add("CAST(b.StartTime AS DATE) >= @From");
+        if (to.HasValue) conditions.Add("CAST(b.StartTime AS DATE) <= @To");
+        conditions.Add("b.Status = 'completed'");
+        var whereClause = "WHERE " + string.Join(" AND ", conditions);
+
+        var sql = $"""
+            SELECT s.Category,
+                   COUNT(*) AS BookingCount,
+                   SUM(s.Price) AS Revenue
+            FROM dbo.Bookings b
+            INNER JOIN dbo.Services s ON s.Id = b.ServiceId
+            {whereClause}
+            GROUP BY s.Category
+            ORDER BY SUM(s.Price) DESC
+            """;
+
+        var items = await conn.QueryAsync<RevenueByCategoryDto>(
+            new CommandDefinition(sql, new { From = from, To = to }, cancellationToken: ct));
+
+        var itemList = items.ToList();
+        var totalRevenue = itemList.Sum(i => i.Revenue);
+
+        return new RevenueByCategoryReport(itemList, totalRevenue);
+    }
+
+    public async Task<ExpiryWasteReport> GetExpiryWasteAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        using var conn = await db.CreateAsync();
+
+        var conditions = new List<string> { "sm.MovementType = 'expired'" };
+        if (from.HasValue) conditions.Add("CAST(sm.CreatedAt AS DATE) >= @From");
+        if (to.HasValue) conditions.Add("CAST(sm.CreatedAt AS DATE) <= @To");
+        var whereClause = "WHERE " + string.Join(" AND ", conditions);
+
+        var sql = $"""
+            SELECT tp.Id AS ProductId,
+                   ISNULL(tp.CustomName, tp.MasterProductName) AS ProductName,
+                   tp.Brand,
+                   SUM(sm.Quantity) AS ExpiredQuantity,
+                   SUM(sm.Quantity * ISNULL(tp.CustomPrice, tp.DefaultPrice)) AS EstimatedWasteValue
+            FROM dbo.StockMovements sm
+            INNER JOIN dbo.TenantProducts tp ON tp.Id = sm.TenantProductId
+            {whereClause}
+            GROUP BY tp.Id, tp.CustomName, tp.MasterProductName, tp.Brand, tp.CustomPrice, tp.DefaultPrice
+            ORDER BY SUM(sm.Quantity * ISNULL(tp.CustomPrice, tp.DefaultPrice)) DESC
+            """;
+
+        var items = await conn.QueryAsync<ExpiryWasteDto>(
+            new CommandDefinition(sql, new { From = from, To = to }, cancellationToken: ct));
+
+        var itemList = items.ToList();
+        var totalMovements = itemList.Sum(i => i.ExpiredQuantity);
+        var totalWaste = itemList.Sum(i => i.EstimatedWasteValue);
+
+        return new ExpiryWasteReport(itemList, totalMovements, totalWaste);
+    }
+
+    public async Task<EmployeeUtilisationReport> GetEmployeeUtilisationAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        using var conn = await db.CreateAsync();
+
+        var conditions = new List<string> { "b.EmployeeId IS NOT NULL" };
+        if (from.HasValue) conditions.Add("CAST(b.StartTime AS DATE) >= @From");
+        if (to.HasValue) conditions.Add("CAST(b.StartTime AS DATE) <= @To");
+        var whereClause = "WHERE " + string.Join(" AND ", conditions);
+
+        var sql = $"""
+            SELECT e.Id AS EmployeeId,
+                   e.FirstName + ' ' + e.LastName AS EmployeeName,
+                   e.Role,
+                   COUNT(*) AS TotalBookings,
+                   SUM(CASE WHEN b.Status = 'completed' THEN 1 ELSE 0 END) AS CompletedBookings,
+                   ISNULL(SUM(CASE WHEN b.Status = 'completed' THEN s.Price ELSE 0 END), 0) AS Revenue
+            FROM dbo.Bookings b
+            INNER JOIN dbo.Employees e ON e.Id = b.EmployeeId
+            INNER JOIN dbo.Services s ON s.Id = b.ServiceId
+            {whereClause}
+            GROUP BY e.Id, e.FirstName, e.LastName, e.Role
+            ORDER BY COUNT(*) DESC
+            """;
+
+        var items = await conn.QueryAsync<EmployeeUtilisationDto>(
+            new CommandDefinition(sql, new { From = from, To = to }, cancellationToken: ct));
+
+        var itemList = items.ToList();
+        var totalBookings = itemList.Sum(i => i.TotalBookings);
+
+        return new EmployeeUtilisationReport(itemList, totalBookings);
     }
 }

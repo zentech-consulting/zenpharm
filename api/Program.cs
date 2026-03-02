@@ -97,6 +97,11 @@ builder.Services.AddRateLimiter(opts =>
         o.PermitLimit = 10;
         o.Window = TimeSpan.FromMinutes(1);
     });
+    opts.AddFixedWindowLimiter("notifications", o =>
+    {
+        o.PermitLimit = 10;
+        o.Window = TimeSpan.FromMinutes(1);
+    });
     opts.RejectionStatusCode = 429;
 });
 
@@ -139,6 +144,7 @@ if (emailDryRun)
     builder.Services.AddScoped<IEmailService, DryRunEmailService>();
 else
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReportManager, ReportManager>();
 builder.Services.AddScoped<IMasterProductManager, MasterProductManager>();
 builder.Services.AddScoped<IProductManager, ProductManager>();
@@ -153,6 +159,10 @@ builder.Services.AddHttpClient("Anthropic", client =>
 {
     client.BaseAddress = new Uri("https://api.anthropic.com");
     client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+});
+builder.Services.AddHttpClient("SmsBroadcast", client =>
+{
+    client.BaseAddress = new Uri("https://api.smsbroadcast.com.au");
 });
 
 var app = builder.Build();
@@ -223,6 +233,7 @@ app.MapEmployeeEndpoints();
 app.MapAiChatEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapReportEndpoints();
+app.MapNotificationEndpoints();
 app.MapMasterProductEndpoints();
 app.MapProductEndpoints();
 app.MapPlatformEndpoints();

@@ -41,7 +41,7 @@ internal sealed class ProductManager(
         if (lowStockOnly)
             conditions.Add("StockQuantity <= ReorderLevel");
         if (expiringOnly)
-            conditions.Add("ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, GETUTCDATE())");
+            conditions.Add("ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, SYSUTCDATETIME())");
 
         var whereClause = conditions.Count > 0
             ? "WHERE " + string.Join(" AND ", conditions)
@@ -59,7 +59,9 @@ internal sealed class ProductManager(
 
         var parameters = new
         {
-            Search = string.IsNullOrWhiteSpace(search) ? null : $"%{search}%",
+            Search = string.IsNullOrWhiteSpace(search)
+                ? null
+                : $"%{search!.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]")}%",
             Offset = (page - 1) * pageSize,
             PageSize = pageSize
         };
@@ -184,6 +186,29 @@ internal sealed class ProductManager(
         Guid productId, RecordStockMovementRequest request, CancellationToken ct = default)
     {
         using var conn = await db.CreateAsync();
+
+        // Fetch product to check schedule class compliance
+        var product = await conn.QuerySingleOrDefaultAsync<ProductDto>(
+            new CommandDefinition(
+                $"SELECT {SelectColumns} FROM dbo.TenantProducts WHERE Id = @Id",
+                new { Id = productId }, cancellationToken: ct));
+
+        if (product is null)
+            throw new InvalidOperationException($"Product {productId} not found");
+
+        // Validate movement type against allowed values
+        if (request.MovementType is not ("stock_in" or "stock_out" or "adjustment" or "expired" or "return"))
+            throw new InvalidOperationException(
+                $"Invalid movement type: '{request.MovementType}'. " +
+                "Valid types: stock_in, stock_out, adjustment, expired, return.");
+
+        // Schedule class compliance for movements that reduce stock
+        if (request.MovementType is "stock_out" or "expired"
+            || (request.MovementType == "adjustment" && request.Quantity < 0))
+        {
+            ValidateScheduleClassCompliance(product.ScheduleClass, request.ApprovedBy);
+        }
+
         using var tx = conn.BeginTransaction();
 
         var quantityDelta = request.MovementType switch
@@ -193,6 +218,12 @@ internal sealed class ProductManager(
             "adjustment" => request.Quantity,
             _ => request.Quantity
         };
+
+        // Prevent stock going negative
+        if (quantityDelta < 0 && product.StockQuantity + quantityDelta < 0)
+            throw new InvalidOperationException(
+                $"Insufficient stock. Available: {product.StockQuantity}, " +
+                $"requested: {Math.Abs(quantityDelta)}.");
 
         var updateSql = """
             UPDATE dbo.TenantProducts
@@ -205,10 +236,10 @@ internal sealed class ProductManager(
                 transaction: tx, cancellationToken: ct));
 
         var insertSql = """
-            INSERT INTO dbo.StockMovements (TenantProductId, MovementType, Quantity, Reference, Notes, CreatedBy)
+            INSERT INTO dbo.StockMovements (TenantProductId, MovementType, Quantity, Reference, Notes, CreatedBy, ApprovedBy)
             OUTPUT INSERTED.Id, INSERTED.TenantProductId, INSERTED.MovementType, INSERTED.Quantity,
-                   INSERTED.Reference, INSERTED.Notes, INSERTED.CreatedAt, INSERTED.CreatedBy
-            VALUES (@TenantProductId, @MovementType, @Quantity, @Reference, @Notes, @CreatedBy)
+                   INSERTED.Reference, INSERTED.Notes, INSERTED.CreatedAt, INSERTED.CreatedBy, INSERTED.ApprovedBy
+            VALUES (@TenantProductId, @MovementType, @Quantity, @Reference, @Notes, @CreatedBy, @ApprovedBy)
             """;
 
         var movement = await conn.QuerySingleAsync<StockMovementDto>(
@@ -219,15 +250,38 @@ internal sealed class ProductManager(
                 request.Quantity,
                 request.Reference,
                 request.Notes,
-                request.CreatedBy
+                request.CreatedBy,
+                request.ApprovedBy
             }, transaction: tx, cancellationToken: ct));
 
         tx.Commit();
 
-        logger.LogInformation("Stock movement recorded: {Type} {Quantity} for product {ProductId}",
-            request.MovementType, request.Quantity, productId);
+        logger.LogInformation("Stock movement recorded: {Type} {Quantity} for product {ProductId} Schedule={Schedule}",
+            request.MovementType, request.Quantity, productId, product.ScheduleClass);
 
         return movement;
+    }
+
+    /// <summary>
+    /// Validates TGA schedule class rules for stock_out movements:
+    /// - S2 (Pharmacy Medicine): no special approval needed
+    /// - S3 (Pharmacist Only): requires ApprovedBy (pharmacist name)
+    /// - S4 (Prescription Only): blocked for OTC sale via admin panel
+    /// </summary>
+    internal static void ValidateScheduleClassCompliance(string scheduleClass, string? approvedBy)
+    {
+        switch (scheduleClass)
+        {
+            case "S4":
+                throw new InvalidOperationException(
+                    "S4 (Prescription Only) products cannot be dispensed via the admin panel. " +
+                    "Prescription dispensing must be handled through the dispensary system.");
+
+            case "S3" when string.IsNullOrWhiteSpace(approvedBy):
+                throw new InvalidOperationException(
+                    "S3 (Pharmacist Only) products require pharmacist approval. " +
+                    "Please provide the approving pharmacist's name in the ApprovedBy field.");
+        }
     }
 
     public async Task<StockMovementListResponse> ListStockMovementsAsync(
@@ -238,7 +292,7 @@ internal sealed class ProductManager(
         var countSql = "SELECT COUNT(*) FROM dbo.StockMovements WHERE TenantProductId = @ProductId";
 
         var listSql = """
-            SELECT Id, TenantProductId, MovementType, Quantity, Reference, Notes, CreatedAt, CreatedBy
+            SELECT Id, TenantProductId, MovementType, Quantity, Reference, Notes, CreatedAt, CreatedBy, ApprovedBy
             FROM dbo.StockMovements
             WHERE TenantProductId = @ProductId
             ORDER BY CreatedAt DESC
@@ -284,7 +338,7 @@ internal sealed class ProductManager(
         var sql = $"""
             SELECT {SelectColumns}
             FROM dbo.TenantProducts
-            WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, @DaysAhead, GETUTCDATE())
+            WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, @DaysAhead, SYSUTCDATETIME())
             ORDER BY ExpiryDate ASC
             """;
 

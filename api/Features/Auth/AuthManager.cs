@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Api.Common;
+using Api.Common.Tenancy;
 using Dapper;
 using Microsoft.IdentityModel.Tokens;
 
@@ -11,6 +12,7 @@ namespace Api.Features.Auth;
 
 internal sealed class AuthManager(
     ITenantDb db,
+    ICatalogDb catalogDb,
     IConfiguration cfg,
     ILogger<AuthManager> logger) : IAuthManager
 {
@@ -33,6 +35,7 @@ internal sealed class AuthManager(
     public async Task<LoginResponse?> LoginAsync(
         LoginRequest request,
         string? clientIp,
+        Guid? tenantId = null,
         CancellationToken ct = default)
     {
         logger.LogInformation("Login attempt. Username={Username} IP={IP}",
@@ -91,13 +94,16 @@ internal sealed class AuthManager(
         // 4. Reset lockout, record successful login
         await RecordSuccessfulLoginAsync(conn, user.Id, clientIp, ct);
 
-        // 5. Generate tokens
+        // 5. Session eviction — enforce MaxConcurrentSessions from plan
+        await EvictOldestSessionIfNeededAsync(conn, tenantId, ct);
+
+        // 6. Generate tokens
         var (accessToken, expiresAt) = GenerateAccessToken(user);
         var refreshToken = GenerateRefreshToken();
         var refreshTokenExpiry = DateTimeOffset.UtcNow.AddDays(
             request.RememberMe ? _refreshTokenDaysRememberMe : _refreshTokenDays);
 
-        // 6. Store refresh token hash
+        // 7. Store refresh token hash
         await StoreRefreshTokenAsync(conn, user.Id, refreshToken, refreshTokenExpiry, clientIp, ct);
 
         logger.LogInformation("Login successful. UserId={UserId} RememberMe={RememberMe}",
@@ -162,6 +168,13 @@ internal sealed class AuthManager(
             return null;
         }
 
+        // Update LastUsedAt for session activity tracking
+        const string sqlUpdateLastUsed = """
+            UPDATE dbo.RefreshTokens SET LastUsedAt = SYSUTCDATETIME() WHERE Id = @Id;
+            """;
+        await conn.ExecuteAsync(new CommandDefinition(sqlUpdateLastUsed,
+            new { tokenRecord.Id }, cancellationToken: ct));
+
         // Generate new access token only (keep same refresh token)
         var user = new AdminUserEntity
         {
@@ -219,6 +232,77 @@ internal sealed class AuthManager(
 
         return await conn.QueryFirstOrDefaultAsync<AdminUserDto>(
             new CommandDefinition(sql, new { UserId = userId }, cancellationToken: ct));
+    }
+
+    // ================================================================
+    // Session Management
+    // ================================================================
+
+    public async Task<SessionListResponse?> GetActiveSessionsAsync(
+        Guid tenantId, CancellationToken ct = default)
+    {
+        using var conn = await db.CreateAsync();
+
+        const string sqlSessions = """
+            SELECT rt.Id, u.Username, rt.CreatedByIp, rt.CreatedAt, rt.LastUsedAt
+            FROM dbo.RefreshTokens rt
+            INNER JOIN dbo.AdminUsers u ON rt.UserId = u.Id
+            WHERE rt.IsRevoked = 0
+              AND rt.ExpiresAt > SYSUTCDATETIME()
+              AND (
+                  (rt.LastUsedAt IS NOT NULL AND rt.LastUsedAt > DATEADD(HOUR, -24, SYSUTCDATETIME()))
+                  OR (rt.LastUsedAt IS NULL AND rt.CreatedAt > DATEADD(HOUR, -24, SYSUTCDATETIME()))
+              )
+            ORDER BY rt.CreatedAt DESC;
+            """;
+
+        var sessions = (await conn.QueryAsync<ActiveSessionDto>(
+            new CommandDefinition(sqlSessions, cancellationToken: ct))).ToList();
+
+        var maxSessions = await GetMaxConcurrentSessionsAsync(tenantId, ct);
+
+        return new SessionListResponse(sessions, maxSessions);
+    }
+
+    public async Task<SessionSummaryDto?> GetSessionSummaryAsync(
+        Guid tenantId, CancellationToken ct = default)
+    {
+        using var conn = await db.CreateAsync();
+
+        const string sqlCount = """
+            SELECT COUNT(*) FROM dbo.RefreshTokens
+            WHERE IsRevoked = 0
+              AND ExpiresAt > SYSUTCDATETIME()
+              AND (
+                  (LastUsedAt IS NOT NULL AND LastUsedAt > DATEADD(HOUR, -24, SYSUTCDATETIME()))
+                  OR (LastUsedAt IS NULL AND CreatedAt > DATEADD(HOUR, -24, SYSUTCDATETIME()))
+              );
+            """;
+
+        var activeCount = await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition(sqlCount, cancellationToken: ct));
+
+        var (maxSessions, planName) = await GetPlanInfoAsync(tenantId, ct);
+
+        return new SessionSummaryDto(activeCount, maxSessions, planName);
+    }
+
+    public async Task<bool> RevokeSessionByIdAsync(Guid sessionId, CancellationToken ct = default)
+    {
+        logger.LogInformation("Revoking session by ID. SessionId={SessionId}", sessionId);
+
+        using var conn = await db.CreateAsync();
+
+        const string sql = """
+            UPDATE dbo.RefreshTokens
+            SET IsRevoked = 1, RevokedAt = SYSUTCDATETIME()
+            WHERE Id = @SessionId AND IsRevoked = 0;
+            """;
+
+        var affected = await conn.ExecuteAsync(
+            new CommandDefinition(sql, new { SessionId = sessionId }, cancellationToken: ct));
+
+        return affected > 0;
     }
 
     // ================================================================
@@ -331,5 +415,116 @@ internal sealed class AuthManager(
             ExpiresAt = expiresAt,
             CreatedByIp = clientIp
         }, cancellationToken: ct));
+    }
+
+    private async Task EvictOldestSessionIfNeededAsync(IDbConnection conn, Guid? tenantId, CancellationToken ct)
+    {
+        try
+        {
+            const string sqlCount = """
+                SELECT COUNT(*) FROM dbo.RefreshTokens
+                WHERE IsRevoked = 0
+                  AND ExpiresAt > SYSUTCDATETIME()
+                  AND (
+                      (LastUsedAt IS NOT NULL AND LastUsedAt > DATEADD(HOUR, -24, SYSUTCDATETIME()))
+                      OR (LastUsedAt IS NULL AND CreatedAt > DATEADD(HOUR, -24, SYSUTCDATETIME()))
+                  );
+                """;
+
+            var activeCount = await conn.ExecuteScalarAsync<int>(
+                new CommandDefinition(sqlCount, cancellationToken: ct));
+
+            var maxSessions = tenantId.HasValue
+                ? await GetMaxConcurrentSessionsAsync(tenantId.Value, ct)
+                : 5;
+
+            // Loop-based eviction: evict oldest sessions until under the limit
+            // (handles cases where count is already over limit by more than 1)
+            while (activeCount >= maxSessions)
+            {
+                const string sqlEvict = """
+                    UPDATE dbo.RefreshTokens
+                    SET IsRevoked = 1, RevokedAt = SYSUTCDATETIME()
+                    WHERE Id = (
+                        SELECT TOP 1 Id FROM dbo.RefreshTokens
+                        WHERE IsRevoked = 0
+                          AND ExpiresAt > SYSUTCDATETIME()
+                          AND (
+                              (LastUsedAt IS NOT NULL AND LastUsedAt > DATEADD(HOUR, -24, SYSUTCDATETIME()))
+                              OR (LastUsedAt IS NULL AND CreatedAt > DATEADD(HOUR, -24, SYSUTCDATETIME()))
+                          )
+                        ORDER BY CreatedAt ASC
+                    );
+                    """;
+
+                var evicted = await conn.ExecuteAsync(new CommandDefinition(sqlEvict, cancellationToken: ct));
+                if (evicted == 0) break; // No more sessions to evict
+
+                activeCount--;
+                logger.LogInformation("Session evicted (FIFO). ActiveCount={Count} MaxSessions={Max}",
+                    activeCount, maxSessions);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Session eviction check failed — proceeding with login");
+        }
+    }
+
+    internal async Task<int> GetMaxConcurrentSessionsAsync(Guid tenantId, CancellationToken ct)
+    {
+        try
+        {
+            using var catalogConn = await catalogDb.CreateAsync();
+
+            const string sql = """
+                SELECT p.MaxConcurrentSessions
+                FROM dbo.Subscriptions s
+                INNER JOIN dbo.Plans p ON s.PlanId = p.Id
+                WHERE s.TenantId = @TenantId AND s.Status = 'Active';
+                """;
+
+            var result = await catalogConn.QueryFirstOrDefaultAsync<int?>(
+                new CommandDefinition(sql, new { TenantId = tenantId }, cancellationToken: ct));
+
+            return result ?? 5;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to retrieve MaxConcurrentSessions from catalogue — using default");
+            return 5;
+        }
+    }
+
+    private async Task<(int MaxSessions, string PlanName)> GetPlanInfoAsync(
+        Guid tenantId, CancellationToken ct)
+    {
+        try
+        {
+            using var catalogConn = await catalogDb.CreateAsync();
+
+            const string sql = """
+                SELECT p.MaxConcurrentSessions, p.Name AS PlanName
+                FROM dbo.Subscriptions s
+                INNER JOIN dbo.Plans p ON s.PlanId = p.Id
+                WHERE s.TenantId = @TenantId AND s.Status = 'Active';
+                """;
+
+            var result = await catalogConn.QueryFirstOrDefaultAsync<PlanInfoResult>(
+                new CommandDefinition(sql, new { TenantId = tenantId }, cancellationToken: ct));
+
+            return (result?.MaxConcurrentSessions ?? 5, result?.PlanName ?? "Free");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to retrieve plan info from catalogue — using defaults");
+            return (5, "Free");
+        }
+    }
+
+    private sealed record PlanInfoResult
+    {
+        public int MaxConcurrentSessions { get; init; }
+        public string PlanName { get; init; } = "Free";
     }
 }

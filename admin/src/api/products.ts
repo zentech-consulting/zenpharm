@@ -30,6 +30,7 @@ export interface StockMovement {
   notes?: string
   createdAt: string
   createdBy?: string
+  approvedBy?: string
 }
 
 interface ProductList { items: Product[]; totalCount: number }
@@ -69,6 +70,7 @@ export const recordStockMovement = (productId: string, data: {
   reference?: string
   notes?: string
   createdBy?: string
+  approvedBy?: string
 }) =>
   apiFetch<StockMovement>(`/api/products/${productId}/stock-movements`, { method: 'POST', body: JSON.stringify(data) })
 

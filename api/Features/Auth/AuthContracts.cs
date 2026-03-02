@@ -50,6 +50,24 @@ internal sealed record RefreshTokenJoinResult
     public bool IsActive { get; init; }
 }
 
+// --- Session Control DTOs ---
+
+public sealed record ActiveSessionDto(
+    Guid Id,
+    string Username,
+    string? CreatedByIp,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? LastUsedAt);
+
+public sealed record SessionSummaryDto(
+    int ActiveSessions,
+    int MaxSessions,
+    string PlanName);
+
+public sealed record SessionListResponse(
+    IReadOnlyList<ActiveSessionDto> Sessions,
+    int MaxSessions);
+
 internal sealed record AdminUserEntity
 {
     public Guid Id { get; init; }

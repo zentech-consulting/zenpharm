@@ -8,20 +8,27 @@ import {
   MedicineBoxOutlined,
   WarningOutlined,
   ClockCircleOutlined,
+  LaptopOutlined,
 } from '@ant-design/icons'
 import { fetchDashboardSummary, type DashboardSummary } from '../api/reports'
+import { fetchSessionSummary, type SessionSummary } from '../api/auth'
 
 const { Title } = Typography
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await fetchDashboardSummary()
-        setSummary(data)
+        const [dashData, sessData] = await Promise.allSettled([
+          fetchDashboardSummary(),
+          fetchSessionSummary(),
+        ])
+        if (dashData.status === 'fulfilled') setSummary(dashData.value)
+        if (sessData.status === 'fulfilled') setSessionSummary(sessData.value)
       } catch {
         message.error('Failed to load dashboard data')
       } finally {
@@ -32,6 +39,12 @@ export default function DashboardPage() {
   }, [])
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />
+
+  const sessionValue = sessionSummary?.activeSessions ?? 0
+  const sessionSuffix = sessionSummary ? `/ ${sessionSummary.maxSessions}` : ''
+  const sessionColour = sessionSummary && sessionSummary.activeSessions >= sessionSummary.maxSessions
+    ? '#ee5a24'
+    : '#27ae60'
 
   const stats = [
     { title: 'Total Clients', value: summary?.totalClients ?? 0, icon: <TeamOutlined />, colour: '#1a1a2e' },
@@ -60,6 +73,17 @@ export default function DashboardPage() {
             </Card>
           </Col>
         ))}
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="Active Sessions"
+              value={sessionValue}
+              suffix={sessionSuffix}
+              prefix={<LaptopOutlined />}
+              valueStyle={{ color: sessionColour }}
+            />
+          </Card>
+        </Col>
       </Row>
     </>
   )

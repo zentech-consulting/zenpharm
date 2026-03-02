@@ -53,8 +53,15 @@ public static class ProductEndpoints
         g.MapPost("{id:guid}/stock-movements",
             async Task<IResult> (Guid id, RecordStockMovementRequest req, IProductManager mgr, CancellationToken ct) =>
         {
-            var movement = await mgr.RecordStockMovementAsync(id, req, ct);
-            return Results.Created($"/api/products/{id}/stock-movements", movement);
+            try
+            {
+                var movement = await mgr.RecordStockMovementAsync(id, req, ct);
+                return Results.Created($"/api/products/{id}/stock-movements", movement);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
         })
         .WithOpenApi(op => { op.Summary = "Record a stock movement for a product"; return op; });
 
