@@ -70,7 +70,7 @@ internal sealed class ReportManager(
             lowStockCount = await conn.ExecuteScalarAsync<int>(
                 new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts WHERE StockQuantity <= ReorderLevel", cancellationToken: ct));
             expiringCount = await conn.ExecuteScalarAsync<int>(
-                new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, GETUTCDATE())", cancellationToken: ct));
+                new CommandDefinition("SELECT COUNT(*) FROM dbo.TenantProducts WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, SYSUTCDATETIME())", cancellationToken: ct));
         }
         catch (Exception ex)
         {

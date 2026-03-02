@@ -55,6 +55,7 @@ public sealed record RecordStockMovementRequest
     [Required, MaxLength(20)]
     public string MovementType { get; init; } = "stock_in";
 
+    [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
     public int Quantity { get; init; }
 
     [MaxLength(200)]

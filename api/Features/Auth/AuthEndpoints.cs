@@ -13,7 +13,8 @@ public static class AuthEndpoints
         g.MapPost("login", async Task<IResult> (LoginRequest req, IAuthManager mgr, HttpContext ctx, CancellationToken ct) =>
         {
             var clientIp = ctx.Connection.RemoteIpAddress?.ToString();
-            var result = await mgr.LoginAsync(req, clientIp, ct);
+            var tenantId = (ctx.Items["TenantContext"] as TenantContext)?.TenantId;
+            var result = await mgr.LoginAsync(req, clientIp, tenantId, ct);
             return result is not null ? Results.Ok(result) : Results.Unauthorized();
         })
         .AllowAnonymous()
@@ -53,6 +54,10 @@ public static class AuthEndpoints
 
         g.MapGet("sessions", async Task<IResult> (IAuthManager mgr, HttpContext ctx, CancellationToken ct) =>
         {
+            var role = ctx.User.FindFirstValue(ClaimTypes.Role);
+            if (role is not ("Admin" or "SuperAdmin" or "Manager"))
+                return Results.Forbid();
+
             var tenantContext = ctx.Items["TenantContext"] as TenantContext;
             if (tenantContext is null) return Results.BadRequest("Tenant context required");
 
@@ -60,10 +65,14 @@ public static class AuthEndpoints
             return result is not null ? Results.Ok(result) : Results.NotFound();
         })
         .RequireAuthorization()
-        .WithOpenApi(op => { op.Summary = "List active sessions for this tenant"; return op; });
+        .WithOpenApi(op => { op.Summary = "List active sessions (admin/manager only)"; return op; });
 
         g.MapGet("sessions/summary", async Task<IResult> (IAuthManager mgr, HttpContext ctx, CancellationToken ct) =>
         {
+            var role = ctx.User.FindFirstValue(ClaimTypes.Role);
+            if (role is not ("Admin" or "SuperAdmin" or "Manager"))
+                return Results.Forbid();
+
             var tenantContext = ctx.Items["TenantContext"] as TenantContext;
             if (tenantContext is null) return Results.BadRequest("Tenant context required");
 
@@ -71,7 +80,7 @@ public static class AuthEndpoints
             return result is not null ? Results.Ok(result) : Results.NotFound();
         })
         .RequireAuthorization()
-        .WithOpenApi(op => { op.Summary = "Get active session count vs plan limit"; return op; });
+        .WithOpenApi(op => { op.Summary = "Get active session count vs plan limit (admin/manager only)"; return op; });
 
         g.MapDelete("sessions/{id:guid}", async Task<IResult> (Guid id, IAuthManager mgr, HttpContext ctx, CancellationToken ct) =>
         {

@@ -97,6 +97,11 @@ builder.Services.AddRateLimiter(opts =>
         o.PermitLimit = 10;
         o.Window = TimeSpan.FromMinutes(1);
     });
+    opts.AddFixedWindowLimiter("notifications", o =>
+    {
+        o.PermitLimit = 10;
+        o.Window = TimeSpan.FromMinutes(1);
+    });
     opts.RejectionStatusCode = 429;
 });
 

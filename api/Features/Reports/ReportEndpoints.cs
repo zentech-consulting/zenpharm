@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 
 namespace Api.Features.Reports;
@@ -8,7 +9,15 @@ public static class ReportEndpoints
     {
         var g = app.MapGroup("/api/reports")
             .WithTags("Reports")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .AddEndpointFilter(async (ctx, next) =>
+            {
+                var httpCtx = ctx.HttpContext;
+                var role = httpCtx.User.FindFirstValue(ClaimTypes.Role);
+                if (role is not ("Admin" or "SuperAdmin" or "Manager"))
+                    return Results.Forbid();
+                return await next(ctx);
+            });
 
         g.MapGet("dashboard", async Task<IResult> (DateOnly? from, DateOnly? to, IReportManager mgr, CancellationToken ct) =>
         {

@@ -35,6 +35,7 @@ internal sealed class AuthManager(
     public async Task<LoginResponse?> LoginAsync(
         LoginRequest request,
         string? clientIp,
+        Guid? tenantId = null,
         CancellationToken ct = default)
     {
         logger.LogInformation("Login attempt. Username={Username} IP={IP}",
@@ -94,7 +95,7 @@ internal sealed class AuthManager(
         await RecordSuccessfulLoginAsync(conn, user.Id, clientIp, ct);
 
         // 5. Session eviction — enforce MaxConcurrentSessions from plan
-        await EvictOldestSessionIfNeededAsync(conn, ct);
+        await EvictOldestSessionIfNeededAsync(conn, tenantId, ct);
 
         // 6. Generate tokens
         var (accessToken, expiresAt) = GenerateAccessToken(user);
@@ -416,18 +417,10 @@ internal sealed class AuthManager(
         }, cancellationToken: ct));
     }
 
-    private async Task EvictOldestSessionIfNeededAsync(IDbConnection conn, CancellationToken ct)
+    private async Task EvictOldestSessionIfNeededAsync(IDbConnection conn, Guid? tenantId, CancellationToken ct)
     {
         try
         {
-            using var catalogConn = await catalogDb.CreateAsync();
-
-            // Get TenantId from any active subscription context isn't available here directly,
-            // so we get the max sessions for the current tenant from catalog.
-            // We use a simple approach: query all active sessions and compare with a default limit.
-            // The tenant context provides TenantId via the injected context.
-
-            // Count active sessions for this tenant
             const string sqlCount = """
                 SELECT COUNT(*) FROM dbo.RefreshTokens
                 WHERE IsRevoked = 0
@@ -441,31 +434,14 @@ internal sealed class AuthManager(
             var activeCount = await conn.ExecuteScalarAsync<int>(
                 new CommandDefinition(sqlCount, cancellationToken: ct));
 
-            // Get max sessions from plan — we need TenantContext for TenantId
-            // Since we can't inject TenantContext here directly in all paths,
-            // use a safe default of 5 if catalog lookup fails
-            var maxSessions = 5;
-            try
-            {
-                // Query all plans to find the tenant's plan limit
-                // The TenantContext.Plan holds the plan name
-                var planName = cfg["_CurrentPlanName"];
-                if (!string.IsNullOrEmpty(planName))
-                {
-                    const string sqlPlan = "SELECT MaxConcurrentSessions FROM dbo.Plans WHERE Name = @PlanName;";
-                    var limit = await catalogConn.QueryFirstOrDefaultAsync<int?>(
-                        new CommandDefinition(sqlPlan, new { PlanName = planName }, cancellationToken: ct));
-                    if (limit.HasValue) maxSessions = limit.Value;
-                }
-            }
-            catch
-            {
-                // Fall back to default if catalog query fails
-            }
+            var maxSessions = tenantId.HasValue
+                ? await GetMaxConcurrentSessionsAsync(tenantId.Value, ct)
+                : 5;
 
-            if (activeCount >= maxSessions)
+            // Loop-based eviction: evict oldest sessions until under the limit
+            // (handles cases where count is already over limit by more than 1)
+            while (activeCount >= maxSessions)
             {
-                // Revoke oldest active session (FIFO eviction)
                 const string sqlEvict = """
                     UPDATE dbo.RefreshTokens
                     SET IsRevoked = 1, RevokedAt = SYSUTCDATETIME()
@@ -481,7 +457,10 @@ internal sealed class AuthManager(
                     );
                     """;
 
-                await conn.ExecuteAsync(new CommandDefinition(sqlEvict, cancellationToken: ct));
+                var evicted = await conn.ExecuteAsync(new CommandDefinition(sqlEvict, cancellationToken: ct));
+                if (evicted == 0) break; // No more sessions to evict
+
+                activeCount--;
                 logger.LogInformation("Session evicted (FIFO). ActiveCount={Count} MaxSessions={Max}",
                     activeCount, maxSessions);
             }
@@ -510,9 +489,10 @@ internal sealed class AuthManager(
 
             return result ?? 5;
         }
-        catch
+        catch (Exception ex)
         {
-            return 5; // Safe default
+            logger.LogWarning(ex, "Failed to retrieve MaxConcurrentSessions from catalogue — using default");
+            return 5;
         }
     }
 
@@ -535,8 +515,9 @@ internal sealed class AuthManager(
 
             return (result?.MaxConcurrentSessions ?? 5, result?.PlanName ?? "Free");
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Failed to retrieve plan info from catalogue — using defaults");
             return (5, "Free");
         }
     }

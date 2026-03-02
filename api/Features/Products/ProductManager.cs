@@ -41,7 +41,7 @@ internal sealed class ProductManager(
         if (lowStockOnly)
             conditions.Add("StockQuantity <= ReorderLevel");
         if (expiringOnly)
-            conditions.Add("ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, GETUTCDATE())");
+            conditions.Add("ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, 30, SYSUTCDATETIME())");
 
         var whereClause = conditions.Count > 0
             ? "WHERE " + string.Join(" AND ", conditions)
@@ -194,8 +194,15 @@ internal sealed class ProductManager(
         if (product is null)
             throw new InvalidOperationException($"Product {productId} not found");
 
-        // Schedule class compliance for stock_out movements
-        if (request.MovementType == "stock_out")
+        // Validate movement type against allowed values
+        if (request.MovementType is not ("stock_in" or "stock_out" or "adjustment" or "expired" or "return"))
+            throw new InvalidOperationException(
+                $"Invalid movement type: '{request.MovementType}'. " +
+                "Valid types: stock_in, stock_out, adjustment, expired, return.");
+
+        // Schedule class compliance for movements that reduce stock
+        if (request.MovementType is "stock_out" or "expired"
+            || (request.MovementType == "adjustment" && request.Quantity < 0))
         {
             ValidateScheduleClassCompliance(product.ScheduleClass, request.ApprovedBy);
         }
@@ -209,6 +216,12 @@ internal sealed class ProductManager(
             "adjustment" => request.Quantity,
             _ => request.Quantity
         };
+
+        // Prevent stock going negative
+        if (quantityDelta < 0 && product.StockQuantity + quantityDelta < 0)
+            throw new InvalidOperationException(
+                $"Insufficient stock. Available: {product.StockQuantity}, " +
+                $"requested: {Math.Abs(quantityDelta)}.");
 
         var updateSql = """
             UPDATE dbo.TenantProducts
@@ -323,7 +336,7 @@ internal sealed class ProductManager(
         var sql = $"""
             SELECT {SelectColumns}
             FROM dbo.TenantProducts
-            WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, @DaysAhead, GETUTCDATE())
+            WHERE ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, @DaysAhead, SYSUTCDATETIME())
             ORDER BY ExpiryDate ASC
             """;
 

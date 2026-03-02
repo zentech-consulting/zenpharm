@@ -31,7 +31,7 @@ internal sealed class AiToolExecutor(
         catch (Exception ex)
         {
             logger.LogError(ex, "Tool execution failed: {ToolName}", toolName);
-            return ToolExecutionResult.Fail($"Tool execution failed: {ex.Message}");
+            return ToolExecutionResult.Fail("An internal error occurred while executing this tool. Please try again later.");
         }
     }
 

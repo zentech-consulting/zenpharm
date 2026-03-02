@@ -38,7 +38,16 @@ internal sealed class NotificationService(
                       $"{booking.StartTime:dd/MM/yyyy} at {booking.StartTime:HH:mm}. " +
                       $"Please call to reschedule if needed.";
 
-        var smsResult = await Sms.SendAsync(cfg, logger, booking.Phone, message, ct);
+        Sms.SmsSendResult smsResult;
+        try
+        {
+            smsResult = await Sms.SendAsync(cfg, logger, booking.Phone, message, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "SMS send threw for booking {BookingId}", bookingId);
+            return NotificationResult.Fail("SMS service unavailable. Please try again later.");
+        }
 
         if (!smsResult.Success)
         {
@@ -77,7 +86,16 @@ internal sealed class NotificationService(
             ? $"Hi {client.FirstName}, your prescription is ready for collection. Please visit us at your convenience."
             : message;
 
-        var smsResult = await Sms.SendAsync(cfg, logger, client.Phone, smsMessage, ct);
+        Sms.SmsSendResult smsResult;
+        try
+        {
+            smsResult = await Sms.SendAsync(cfg, logger, client.Phone, smsMessage, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "SMS send threw for client {ClientId}", clientId);
+            return NotificationResult.Fail("SMS service unavailable. Please try again later.");
+        }
 
         if (!smsResult.Success)
         {
