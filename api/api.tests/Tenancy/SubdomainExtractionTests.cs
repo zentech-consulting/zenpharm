@@ -86,6 +86,21 @@ public class SubdomainExtractionTests
     }
 
     [Fact]
+    public void Localhost_EmptyConfig_ReturnsNull()
+    {
+        // Empty string in config should be treated as null (no tenant)
+        var result = TenantMiddleware.ExtractSubdomain("localhost", CreateConfig(""));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void IpAddress_EmptyConfig_ReturnsNull()
+    {
+        var result = TenantMiddleware.ExtractSubdomain("127.0.0.1", CreateConfig(""));
+        Assert.Null(result);
+    }
+
+    [Fact]
     public void SimpleTld_ExtractsSubdomain()
     {
         // demo.example.com → "demo"
