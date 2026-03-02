@@ -139,8 +139,8 @@ public class ProductContractTests
         var id = Guid.NewGuid();
         var productId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
-        var a = new StockMovementDto(id, productId, "stock_in", 50, "PO-123", "Initial stock", now, "admin");
-        var b = new StockMovementDto(id, productId, "stock_in", 50, "PO-123", "Initial stock", now, "admin");
+        var a = new StockMovementDto(id, productId, "stock_in", 50, "PO-123", "Initial stock", now, "admin", null);
+        var b = new StockMovementDto(id, productId, "stock_in", 50, "PO-123", "Initial stock", now, "admin", null);
 
         Assert.Equal(a, b);
     }

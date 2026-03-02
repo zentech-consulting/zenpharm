@@ -184,6 +184,22 @@ internal sealed class ProductManager(
         Guid productId, RecordStockMovementRequest request, CancellationToken ct = default)
     {
         using var conn = await db.CreateAsync();
+
+        // Fetch product to check schedule class compliance
+        var product = await conn.QuerySingleOrDefaultAsync<ProductDto>(
+            new CommandDefinition(
+                $"SELECT {SelectColumns} FROM dbo.TenantProducts WHERE Id = @Id",
+                new { Id = productId }, cancellationToken: ct));
+
+        if (product is null)
+            throw new InvalidOperationException($"Product {productId} not found");
+
+        // Schedule class compliance for stock_out movements
+        if (request.MovementType == "stock_out")
+        {
+            ValidateScheduleClassCompliance(product.ScheduleClass, request.ApprovedBy);
+        }
+
         using var tx = conn.BeginTransaction();
 
         var quantityDelta = request.MovementType switch
@@ -205,10 +221,10 @@ internal sealed class ProductManager(
                 transaction: tx, cancellationToken: ct));
 
         var insertSql = """
-            INSERT INTO dbo.StockMovements (TenantProductId, MovementType, Quantity, Reference, Notes, CreatedBy)
+            INSERT INTO dbo.StockMovements (TenantProductId, MovementType, Quantity, Reference, Notes, CreatedBy, ApprovedBy)
             OUTPUT INSERTED.Id, INSERTED.TenantProductId, INSERTED.MovementType, INSERTED.Quantity,
-                   INSERTED.Reference, INSERTED.Notes, INSERTED.CreatedAt, INSERTED.CreatedBy
-            VALUES (@TenantProductId, @MovementType, @Quantity, @Reference, @Notes, @CreatedBy)
+                   INSERTED.Reference, INSERTED.Notes, INSERTED.CreatedAt, INSERTED.CreatedBy, INSERTED.ApprovedBy
+            VALUES (@TenantProductId, @MovementType, @Quantity, @Reference, @Notes, @CreatedBy, @ApprovedBy)
             """;
 
         var movement = await conn.QuerySingleAsync<StockMovementDto>(
@@ -219,15 +235,38 @@ internal sealed class ProductManager(
                 request.Quantity,
                 request.Reference,
                 request.Notes,
-                request.CreatedBy
+                request.CreatedBy,
+                request.ApprovedBy
             }, transaction: tx, cancellationToken: ct));
 
         tx.Commit();
 
-        logger.LogInformation("Stock movement recorded: {Type} {Quantity} for product {ProductId}",
-            request.MovementType, request.Quantity, productId);
+        logger.LogInformation("Stock movement recorded: {Type} {Quantity} for product {ProductId} Schedule={Schedule}",
+            request.MovementType, request.Quantity, productId, product.ScheduleClass);
 
         return movement;
+    }
+
+    /// <summary>
+    /// Validates TGA schedule class rules for stock_out movements:
+    /// - S2 (Pharmacy Medicine): no special approval needed
+    /// - S3 (Pharmacist Only): requires ApprovedBy (pharmacist name)
+    /// - S4 (Prescription Only): blocked for OTC sale via admin panel
+    /// </summary>
+    internal static void ValidateScheduleClassCompliance(string scheduleClass, string? approvedBy)
+    {
+        switch (scheduleClass)
+        {
+            case "S4":
+                throw new InvalidOperationException(
+                    "S4 (Prescription Only) products cannot be dispensed via the admin panel. " +
+                    "Prescription dispensing must be handled through the dispensary system.");
+
+            case "S3" when string.IsNullOrWhiteSpace(approvedBy):
+                throw new InvalidOperationException(
+                    "S3 (Pharmacist Only) products require pharmacist approval. " +
+                    "Please provide the approving pharmacist's name in the ApprovedBy field.");
+        }
     }
 
     public async Task<StockMovementListResponse> ListStockMovementsAsync(
@@ -238,7 +277,7 @@ internal sealed class ProductManager(
         var countSql = "SELECT COUNT(*) FROM dbo.StockMovements WHERE TenantProductId = @ProductId";
 
         var listSql = """
-            SELECT Id, TenantProductId, MovementType, Quantity, Reference, Notes, CreatedAt, CreatedBy
+            SELECT Id, TenantProductId, MovementType, Quantity, Reference, Notes, CreatedAt, CreatedBy, ApprovedBy
             FROM dbo.StockMovements
             WHERE TenantProductId = @ProductId
             ORDER BY CreatedAt DESC

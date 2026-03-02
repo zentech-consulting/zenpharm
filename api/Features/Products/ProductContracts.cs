@@ -65,6 +65,9 @@ public sealed record RecordStockMovementRequest
 
     [MaxLength(200)]
     public string? CreatedBy { get; init; }
+
+    [MaxLength(200)]
+    public string? ApprovedBy { get; init; }
 }
 
 public sealed record StockMovementDto(
@@ -75,7 +78,8 @@ public sealed record StockMovementDto(
     string? Reference,
     string? Notes,
     DateTimeOffset CreatedAt,
-    string? CreatedBy);
+    string? CreatedBy,
+    string? ApprovedBy);
 
 public sealed record StockMovementListResponse(
     IReadOnlyList<StockMovementDto> Items,
