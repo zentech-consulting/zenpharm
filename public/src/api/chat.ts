@@ -24,8 +24,10 @@ export interface StreamEvent {
   sessionToken?: string
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+
 export async function sendChatMessage(request: AiChatRequest): Promise<AiChatResponse> {
-  const res = await fetch('/api/ai-chat', {
+  const res = await fetch(`${API_BASE}/api/ai-chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -46,7 +48,7 @@ export async function* streamChatMessage(
   request: AiChatRequest,
   signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
-  const res = await fetch('/api/ai-chat/stream', {
+  const res = await fetch(`${API_BASE}/api/ai-chat/stream`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

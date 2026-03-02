@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean
   _isRetry?: boolean
@@ -8,7 +10,7 @@ async function tryRefreshToken(): Promise<boolean> {
   if (!refreshToken) return false
 
   try {
-    const res = await fetch('/api/auth/refresh', {
+    const res = await fetch(`${API_BASE}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -40,7 +42,8 @@ export async function apiFetch<T>(url: string, options: FetchOptions = {}): Prom
     }
   }
 
-  const res = await fetch(url, { ...rest, headers })
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`
+  const res = await fetch(fullUrl, { ...rest, headers })
 
   if (res.status === 401 && !skipAuth && !_isRetry) {
     const refreshed = await tryRefreshToken()

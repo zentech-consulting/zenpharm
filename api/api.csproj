@@ -4,12 +4,13 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>zentech-biz-api</UserSecretsId>
+    <UserSecretsId>zenpharm-api</UserSecretsId>
     <DefaultItemExcludes>$(DefaultItemExcludes);api.tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="api.tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>

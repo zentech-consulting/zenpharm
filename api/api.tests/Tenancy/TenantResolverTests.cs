@@ -1,5 +1,6 @@
 using System.Data;
 using Api.Common;
+using Api.Common.Security;
 using Api.Common.Tenancy;
 using Dapper;
 using Microsoft.Extensions.Logging;
@@ -12,13 +13,22 @@ namespace Api.Tests.Tenancy;
 public class TenantResolverTests
 {
     private readonly ICatalogDb _catalogDb = Substitute.For<ICatalogDb>();
+    private readonly IConnectionStringProtector _protector = CreatePassthroughProtector();
     private readonly ILogger<TenantResolver> _logger = NullLogger<TenantResolver>.Instance;
     private readonly IDbConnection _mockConn = Substitute.For<IDbConnection>();
+
+    private static IConnectionStringProtector CreatePassthroughProtector()
+    {
+        var p = Substitute.For<IConnectionStringProtector>();
+        p.Unprotect(Arg.Any<string>()).Returns(x => x.Arg<string>());
+        p.Protect(Arg.Any<string>()).Returns(x => x.Arg<string>());
+        return p;
+    }
 
     private TenantResolver CreateResolver()
     {
         _catalogDb.CreateAsync().Returns(Task.FromResult(_mockConn));
-        return new TenantResolver(_catalogDb, _logger);
+        return new TenantResolver(_catalogDb, _protector, _logger);
     }
 
     [Fact]
@@ -28,7 +38,7 @@ public class TenantResolverTests
         // TenantResolver should handle this gracefully and return null.
         _catalogDb.CreateAsync().Returns<IDbConnection>(_ => throw new InvalidOperationException("DB unavailable"));
 
-        var resolver = new TenantResolver(_catalogDb, _logger);
+        var resolver = new TenantResolver(_catalogDb, _protector, _logger);
 
         var result = await resolver.ResolveAsync("nonexistent");
 
