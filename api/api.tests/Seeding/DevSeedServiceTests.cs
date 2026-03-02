@@ -17,9 +17,10 @@ public class DevSeedServiceTests
     // ================================================================
 
     [Fact]
-    public void PharmacyMasterProductData_All_HasThirtyProducts()
+    public void PharmacyMasterProductData_All_HasExpectedProductCount()
     {
-        Assert.Equal(30, PharmacyMasterProductData.All.Length);
+        Assert.True(PharmacyMasterProductData.All.Length >= 350,
+            $"Expected at least 350 products but found {PharmacyMasterProductData.All.Length}");
     }
 
     [Fact]
@@ -29,6 +30,30 @@ public class DevSeedServiceTests
         var distinct = skus.Distinct().ToList();
 
         Assert.Equal(skus.Count, distinct.Count);
+    }
+
+    [Fact]
+    public void PharmacyMasterProductData_All_HasUniqueBarcodes()
+    {
+        var barcodes = PharmacyMasterProductData.All
+            .Where(p => p.Barcode is not null)
+            .Select(p => p.Barcode!)
+            .ToList();
+        var distinct = barcodes.Distinct().ToList();
+
+        Assert.Equal(barcodes.Count, distinct.Count);
+    }
+
+    [Fact]
+    public void PharmacyMasterProductData_All_HasMultipleCategories()
+    {
+        var categories = PharmacyMasterProductData.All
+            .Select(p => p.Category)
+            .Distinct()
+            .ToList();
+
+        Assert.True(categories.Count >= 15,
+            $"Expected at least 15 categories but found {categories.Count}");
     }
 
     [Fact]
