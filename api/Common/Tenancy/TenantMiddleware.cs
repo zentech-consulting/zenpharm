@@ -91,11 +91,11 @@ internal sealed partial class TenantMiddleware(
     {
         // IP addresses → dev fallback
         if (System.Net.IPAddress.TryParse(host, out _))
-            return configuration["Tenancy:DevTenantSubdomain"];
+            return NullIfEmpty(configuration["Tenancy:DevTenantSubdomain"]);
 
         // localhost → dev fallback
         if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
-            return configuration["Tenancy:DevTenantSubdomain"];
+            return NullIfEmpty(configuration["Tenancy:DevTenantSubdomain"]);
 
         var parts = host.Split('.');
 
@@ -117,6 +117,10 @@ internal sealed partial class TenantMiddleware(
 
         return subdomain;
     }
+
+    /// <summary>Treats empty/whitespace config values as null to avoid invalid subdomain errors.</summary>
+    private static string? NullIfEmpty(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value;
 
     /// <summary>
     /// Returns the number of TLD segments for common compound TLDs.
