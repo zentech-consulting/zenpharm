@@ -25,6 +25,12 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- Dapper Type Handlers (DateOnly/TimeOnly) ---
+Dapper.SqlMapper.AddTypeHandler(new Api.Common.DateOnlyTypeHandler());
+Dapper.SqlMapper.AddTypeHandler(new Api.Common.NullableDateOnlyTypeHandler());
+Dapper.SqlMapper.AddTypeHandler(new Api.Common.TimeOnlyTypeHandler());
+Dapper.SqlMapper.AddTypeHandler(new Api.Common.NullableTimeOnlyTypeHandler());
+
 // --- Swagger / OpenAPI ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opts =>
@@ -63,6 +69,7 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "zenpharm-clients";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts =>
     {
+        opts.MapInboundClaims = false;
         opts.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
