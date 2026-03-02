@@ -82,7 +82,7 @@
 - **创建**: 2026-03-02
 - **更新**: 2026-03-02
 - **描述**: Auto-seed dev tenant, admin user, plan, and 30 pharmacy products on startup (dev only)
-- **PR**: #3 (under review)
+- **PR**: #3 (6 commits, pending merge)
 - **子任务**:
   1. [x] IDevSeedService + DevSeedService (idempotent, dev-only)
   2. [x] PharmacyMasterProductData (30 products, 4 schedule classes)
@@ -101,6 +101,29 @@
   1. [x] **ConnectionString encryption** — AES-256-GCM via ConnectionStringProtector; key from `Security:ConnectionStringKey` config; required in production, dev passthrough; backward compatible
   2. [x] **appsettings.Production.json** — DryRun=false for Email/SMS/AiChat; startup warning if DryRun=true in non-Development
   3. [x] **User-secrets migration** — UserSecretsId changed to zenpharm-api; devs must re-init secrets
+
+### Azure Deployment — First Production Deploy
+
+- **状态**: completed
+- **优先级**: critical
+- **创建**: 2026-03-02
+- **更新**: 2026-03-02
+- **描述**: Deploy ZenPharm to Azure under Zentech tenant
+- **PR**: #3 (includes deployment fixes)
+- **子任务**:
+  1. [x] Resource Group: zenpharm (australiaeast)
+  2. [x] SQL Server: zenpharm-sql.database.windows.net (Basic 5 DTU x2)
+  3. [x] App Service: zenpharm-api-au (B1 Linux, .NET 8)
+  4. [x] Static Web Apps: zenpharm-admin + zenpharm-public (eastasia)
+  5. [x] Migration retry logic (Azure SQL cold start)
+  6. [x] API base URL env var for production frontends
+  7. [x] CORS configuration
+  8. [x] Deployment documentation (.claude/deployment.md)
+  9. [x] Project handoff document (.claude/handoff.md)
+- **URLs**:
+  - API: https://zenpharm-api-au.azurewebsites.net
+  - Admin: https://kind-tree-093309e00.4.azurestaticapps.net
+  - Public: https://zealous-flower-0e43e0200.1.azurestaticapps.net
 
 ### Phase 2.5: ZenPharm Premium Features
 
