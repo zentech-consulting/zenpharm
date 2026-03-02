@@ -3,7 +3,7 @@ import {
   Table, Button, Modal, Form, Input, InputNumber, DatePicker, Switch,
   Typography, Space, Tag, Tabs, Alert, message, Checkbox, Select,
 } from 'antd'
-import { EditOutlined, DeleteOutlined, ImportOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, ImportOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import type { Product } from '../api/products'
 import type { MasterProduct } from '../api/masterProducts'
 import { fetchProducts, updateProduct, deleteProduct, importProducts, recordStockMovement } from '../api/products'
@@ -172,7 +172,16 @@ export default function ProductsPage() {
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(r)} />
           <Button size="small" onClick={() => openStockModal(r)}>Stock</Button>
-          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(r.id)} />
+          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => {
+            Modal.confirm({
+              title: 'Delete this product?',
+              icon: <ExclamationCircleOutlined />,
+              content: `This will permanently remove "${r.customName ?? r.masterProductName}" from your inventory.`,
+              okText: 'Delete',
+              okType: 'danger',
+              onOk: () => handleDelete(r.id),
+            })
+          }} />
         </Space>
       ),
     },

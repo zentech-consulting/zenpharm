@@ -40,9 +40,8 @@ export default function DashboardPage() {
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />
 
-  const sessionValue = sessionSummary
-    ? `${sessionSummary.activeSessions} / ${sessionSummary.maxSessions}`
-    : '—'
+  const sessionValue = sessionSummary?.activeSessions ?? 0
+  const sessionSuffix = sessionSummary ? `/ ${sessionSummary.maxSessions}` : ''
   const sessionColour = sessionSummary && sessionSummary.activeSessions >= sessionSummary.maxSessions
     ? '#ee5a24'
     : '#27ae60'
@@ -79,6 +78,7 @@ export default function DashboardPage() {
             <Statistic
               title="Active Sessions"
               value={sessionValue}
+              suffix={sessionSuffix}
               prefix={<LaptopOutlined />}
               valueStyle={{ color: sessionColour }}
             />

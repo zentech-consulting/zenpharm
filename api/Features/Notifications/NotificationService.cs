@@ -6,6 +6,7 @@ namespace Api.Features.Notifications;
 internal sealed class NotificationService(
     ITenantDb db,
     IConfiguration cfg,
+    IHttpClientFactory httpClientFactory,
     ILogger<NotificationService> logger) : INotificationService
 {
     public async Task<NotificationResult> SendBookingReminderAsync(Guid bookingId, CancellationToken ct = default)
@@ -41,7 +42,7 @@ internal sealed class NotificationService(
         Sms.SmsSendResult smsResult;
         try
         {
-            smsResult = await Sms.SendAsync(cfg, logger, booking.Phone, message, ct);
+            smsResult = await Sms.SendAsync(cfg, logger, booking.Phone, message, ct, httpClientFactory.CreateClient("SmsBroadcast"));
         }
         catch (Exception ex)
         {
@@ -89,7 +90,7 @@ internal sealed class NotificationService(
         Sms.SmsSendResult smsResult;
         try
         {
-            smsResult = await Sms.SendAsync(cfg, logger, client.Phone, smsMessage, ct);
+            smsResult = await Sms.SendAsync(cfg, logger, client.Phone, smsMessage, ct, httpClientFactory.CreateClient("SmsBroadcast"));
         }
         catch (Exception ex)
         {

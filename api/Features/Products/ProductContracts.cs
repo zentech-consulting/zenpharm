@@ -28,7 +28,7 @@ public sealed record ProductListResponse(
 
 public sealed record ImportProductsRequest
 {
-    [Required, MinLength(1)]
+    [Required, MinLength(1), MaxLength(100)]
     public Guid[] MasterProductIds { get; init; } = [];
 }
 

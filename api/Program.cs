@@ -160,6 +160,10 @@ builder.Services.AddHttpClient("Anthropic", client =>
     client.BaseAddress = new Uri("https://api.anthropic.com");
     client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
 });
+builder.Services.AddHttpClient("SmsBroadcast", client =>
+{
+    client.BaseAddress = new Uri("https://api.smsbroadcast.com.au");
+});
 
 var app = builder.Build();
 

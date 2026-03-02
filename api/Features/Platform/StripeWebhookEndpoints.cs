@@ -6,11 +6,33 @@ public static class StripeWebhookEndpoints
     {
         app.MapPost("/api/webhooks/stripe", async (
             HttpContext context,
+            IConfiguration cfg,
             ILogger<ProvisioningPipeline> logger,
             CancellationToken ct) =>
         {
-            // In production: verify Stripe signature from headers
-            // var signature = context.Request.Headers["Stripe-Signature"].FirstOrDefault();
+            // Verify Stripe signature — block in production if webhook secret not configured
+            var webhookSecret = cfg["Stripe:WebhookSecret"];
+            if (string.IsNullOrEmpty(webhookSecret))
+            {
+                if (!context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
+                {
+                    logger.LogError("Stripe webhook rejected — Stripe:WebhookSecret not configured in production");
+                    return Results.StatusCode(503);
+                }
+                logger.LogWarning("Stripe webhook secret not configured — accepting unverified payloads in Development only");
+            }
+            else
+            {
+                var signature = context.Request.Headers["Stripe-Signature"].FirstOrDefault();
+                if (string.IsNullOrEmpty(signature))
+                {
+                    logger.LogWarning("Stripe webhook rejected — missing Stripe-Signature header");
+                    return Results.Unauthorized();
+                }
+                // TODO: implement HMAC-SHA256 verification against webhookSecret
+                // For now, presence of the secret + header is required
+                logger.LogInformation("Stripe webhook signature header present");
+            }
 
             StripeWebhookEvent? evt;
             try

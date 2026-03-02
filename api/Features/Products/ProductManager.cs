@@ -59,7 +59,9 @@ internal sealed class ProductManager(
 
         var parameters = new
         {
-            Search = string.IsNullOrWhiteSpace(search) ? null : $"%{search}%",
+            Search = string.IsNullOrWhiteSpace(search)
+                ? null
+                : $"%{search!.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]")}%",
             Offset = (page - 1) * pageSize,
             PageSize = pageSize
         };

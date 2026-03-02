@@ -16,8 +16,6 @@ import {
   type ExpiryWasteReport,
   type EmployeeUtilisationReport,
 } from '../api/reports'
-import dayjs from 'dayjs'
-
 const { RangePicker } = DatePicker
 
 export default function ReportsPage() {
@@ -43,8 +41,10 @@ export default function ReportsPage() {
         if (rc.status === 'fulfilled') setRevenueByCategory(rc.value)
         if (ew.status === 'fulfilled') setExpiryWaste(ew.value)
         if (eu.status === 'fulfilled') setEmployeeUtil(eu.value)
-      } catch {
-        message.error('Failed to load reports')
+        if (ts.status === 'rejected') message.error('Failed to load top selling report')
+        if (rc.status === 'rejected') message.error('Failed to load revenue report')
+        if (ew.status === 'rejected') message.error('Failed to load expiry waste report')
+        if (eu.status === 'rejected') message.error('Failed to load utilisation report')
       } finally {
         setLoading(false)
       }
