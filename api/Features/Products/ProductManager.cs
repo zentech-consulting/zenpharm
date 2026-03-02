@@ -99,11 +99,17 @@ internal sealed class ProductManager(
             var insertSql = $"""
                 IF NOT EXISTS (SELECT 1 FROM dbo.TenantProducts WHERE MasterProductId = @MasterProductId)
                 BEGIN
+                    DECLARE @InsertedId TABLE (Id UNIQUEIDENTIFIER);
+
                     INSERT INTO dbo.TenantProducts
                         (MasterProductId, MasterProductName, GenericName, Brand, Category, ScheduleClass, DefaultPrice, ImageUrl)
-                    OUTPUT INSERTED.{SelectColumns.Replace("\n", "").Replace("        ", "")}
+                    OUTPUT INSERTED.Id INTO @InsertedId
                     VALUES
-                        (@MasterProductId, @MasterProductName, @GenericName, @Brand, @Category, @ScheduleClass, @DefaultPrice, @ImageUrl)
+                        (@MasterProductId, @MasterProductName, @GenericName, @Brand, @Category, @ScheduleClass, @DefaultPrice, @ImageUrl);
+
+                    SELECT {SelectColumns}
+                    FROM dbo.TenantProducts
+                    WHERE Id = (SELECT TOP 1 Id FROM @InsertedId);
                 END
                 """;
 
@@ -138,8 +144,11 @@ internal sealed class ProductManager(
                 ReorderLevel = @ReorderLevel, ExpiryDate = @ExpiryDate,
                 IsVisible = @IsVisible, IsFeatured = @IsFeatured,
                 SortOrder = @SortOrder, UpdatedAt = SYSUTCDATETIME()
-            OUTPUT INSERTED.{SelectColumns.Replace("\n", "").Replace("        ", "")}
-            WHERE Id = @Id
+            WHERE Id = @Id;
+
+            SELECT {SelectColumns}
+            FROM dbo.TenantProducts
+            WHERE Id = @Id;
             """;
 
         logger.LogInformation("Updating tenant product {Id}", id);
