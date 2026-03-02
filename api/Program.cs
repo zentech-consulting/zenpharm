@@ -139,6 +139,7 @@ if (emailDryRun)
     builder.Services.AddScoped<IEmailService, DryRunEmailService>();
 else
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReportManager, ReportManager>();
 builder.Services.AddScoped<IMasterProductManager, MasterProductManager>();
 builder.Services.AddScoped<IProductManager, ProductManager>();
@@ -223,6 +224,7 @@ app.MapEmployeeEndpoints();
 app.MapAiChatEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapReportEndpoints();
+app.MapNotificationEndpoints();
 app.MapMasterProductEndpoints();
 app.MapProductEndpoints();
 app.MapPlatformEndpoints();
