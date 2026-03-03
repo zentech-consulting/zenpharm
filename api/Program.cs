@@ -16,7 +16,9 @@ using Api.Features.Platform;
 using Api.Features.Products;
 using Api.Features.Reports;
 using Api.Features.Schedules;
+using Api.Features.Orders;
 using Api.Features.Services;
+using Api.Features.Shop;
 using Dapper;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -102,6 +104,11 @@ builder.Services.AddRateLimiter(opts =>
         o.PermitLimit = 10;
         o.Window = TimeSpan.FromMinutes(1);
     });
+    opts.AddFixedWindowLimiter("shop-orders", o =>
+    {
+        o.PermitLimit = 5;
+        o.Window = TimeSpan.FromMinutes(1);
+    });
     opts.RejectionStatusCode = 429;
 });
 
@@ -148,6 +155,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReportManager, ReportManager>();
 builder.Services.AddScoped<IMasterProductManager, MasterProductManager>();
 builder.Services.AddScoped<IProductManager, ProductManager>();
+builder.Services.AddScoped<IShopManager, ShopManager>();
+builder.Services.AddScoped<IOrderManager, OrderManager>();
 builder.Services.AddSingleton<IProvisioningPipeline, ProvisioningPipeline>();
 
 // --- Dev Seed (Development only) ---
@@ -236,6 +245,8 @@ app.MapReportEndpoints();
 app.MapNotificationEndpoints();
 app.MapMasterProductEndpoints();
 app.MapProductEndpoints();
+app.MapShopEndpoints();
+app.MapOrderEndpoints();
 app.MapPlatformEndpoints();
 app.MapStripeWebhookEndpoints();
 

@@ -6,6 +6,7 @@ import {
   DashboardOutlined,
   TeamOutlined,
   ShopOutlined,
+  ShoppingCartOutlined,
   CalendarOutlined,
   ScheduleOutlined,
   UserOutlined,
@@ -32,6 +33,7 @@ const menuItems = [
   { key: '/ai-chat', icon: <RobotOutlined />, label: 'AI Chat' },
   { key: '/knowledge', icon: <BookOutlined />, label: 'Knowledge' },
   { key: '/reports', icon: <BarChartOutlined />, label: 'Reports' },
+  { key: '/orders', icon: <ShoppingCartOutlined />, label: 'Orders' },
   { key: '/sessions', icon: <LaptopOutlined />, label: 'Sessions' },
 ]
 
