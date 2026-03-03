@@ -5,6 +5,8 @@ import ServicesPage from './pages/ServicesPage'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import PricingPage from './pages/PricingPage'
+import SignupPage from './pages/SignupPage'
+import SignupSuccessPage from './pages/SignupSuccessPage'
 import ShopPage from './pages/ShopPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import CartPage from './pages/CartPage'
@@ -18,6 +20,8 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup/success" element={<SignupSuccessPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/shop" element={<ShopPage />} />

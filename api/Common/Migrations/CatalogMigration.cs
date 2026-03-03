@@ -186,6 +186,36 @@ internal sealed class CatalogMigration(
                     FaviconUrl       NVARCHAR(500)  NULL,
                     ShortName        NVARCHAR(10)   NULL;
             END
+            """),
+
+        ("009_PendingSignups", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PendingSignups' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.PendingSignups (
+                    Id                   UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    PharmacyName         NVARCHAR(200)    NOT NULL,
+                    Subdomain            NVARCHAR(63)     NOT NULL,
+                    AdminEmail           NVARCHAR(200)    NOT NULL,
+                    AdminFullName        NVARCHAR(200)    NOT NULL,
+                    PlanId               UNIQUEIDENTIFIER NOT NULL,
+                    BillingPeriod        NVARCHAR(10)     NOT NULL DEFAULT 'Monthly',
+                    StripeSessionId      NVARCHAR(200)    NULL,
+                    StripeCustomerId     NVARCHAR(100)    NULL,
+                    StripeSubscriptionId NVARCHAR(100)    NULL,
+                    Status               NVARCHAR(30)     NOT NULL DEFAULT 'pending_payment',
+                    TenantId             UNIQUEIDENTIFIER NULL,
+                    FailureReason        NVARCHAR(2000)   NULL,
+                    CreatedAt            DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt            DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_PendingSignups PRIMARY KEY (Id),
+                    CONSTRAINT FK_PendingSignups_PlanId FOREIGN KEY (PlanId) REFERENCES dbo.Plans(Id),
+                    CONSTRAINT UQ_PendingSignups_Subdomain UNIQUE (Subdomain),
+                    CONSTRAINT CK_PendingSignups_BillingPeriod CHECK (BillingPeriod IN ('Monthly', 'Yearly')),
+                    CONSTRAINT CK_PendingSignups_Status CHECK (Status IN ('pending_payment', 'provisioning', 'active', 'failed', 'expired'))
+                );
+                CREATE INDEX IX_PendingSignups_Status ON dbo.PendingSignups (Status);
+                CREATE INDEX IX_PendingSignups_StripeSessionId ON dbo.PendingSignups (StripeSessionId) WHERE StripeSessionId IS NOT NULL;
+            END
             """)
     ];
 }

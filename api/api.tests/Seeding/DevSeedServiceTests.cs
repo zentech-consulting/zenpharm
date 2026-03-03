@@ -19,8 +19,8 @@ public class DevSeedServiceTests
     [Fact]
     public void PharmacyMasterProductData_All_HasExpectedProductCount()
     {
-        Assert.True(PharmacyMasterProductData.All.Length >= 350,
-            $"Expected at least 350 products but found {PharmacyMasterProductData.All.Length}");
+        Assert.True(PharmacyMasterProductData.All.Length >= 800,
+            $"Expected at least 800 products but found {PharmacyMasterProductData.All.Length}");
     }
 
     [Fact]

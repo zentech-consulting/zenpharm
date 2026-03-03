@@ -15,6 +15,7 @@ import {
   BarChartOutlined,
   MedicineBoxOutlined,
   LaptopOutlined,
+  CloudServerOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -36,6 +37,7 @@ const menuItems = [
   { key: '/reports', icon: <BarChartOutlined />, label: 'Reports' },
   { key: '/orders', icon: <ShoppingCartOutlined />, label: 'Orders' },
   { key: '/sessions', icon: <LaptopOutlined />, label: 'Sessions' },
+  { key: '/platform', icon: <CloudServerOutlined />, label: 'Platform' },
 ]
 
 export default function AdminLayout() {

@@ -116,6 +116,11 @@ builder.Services.AddRateLimiter(opts =>
         o.PermitLimit = 30;
         o.Window = TimeSpan.FromMinutes(1);
     });
+    opts.AddFixedWindowLimiter("signup-checkout", o =>
+    {
+        o.PermitLimit = 3;
+        o.Window = TimeSpan.FromMinutes(1);
+    });
     opts.RejectionStatusCode = 429;
 });
 
@@ -169,6 +174,10 @@ builder.Services.AddScoped<IShopManager, ShopManager>();
 builder.Services.AddScoped<IOrderManager, OrderManager>();
 builder.Services.AddScoped<IBrandingManager, BrandingManager>();
 builder.Services.AddSingleton<IProvisioningPipeline, ProvisioningPipeline>();
+builder.Services.AddScoped<ISignupManager, SignupManager>();
+builder.Services.AddSingleton<IStripeCheckoutService, StripeCheckoutService>();
+builder.Services.AddSingleton<IWelcomeEmailBuilder, WelcomeEmailBuilder>();
+builder.Services.AddScoped<IPbsSyncManager, PbsSyncManager>();
 
 // --- Dev Seed (Development or Seeding:Enabled) ---
 var seedingEnabled = builder.Configuration.GetValue("Seeding:Enabled", false);
@@ -293,6 +302,7 @@ app.MapShopEndpoints();
 app.MapOrderEndpoints();
 app.MapBrandingEndpoints();
 app.MapPlatformEndpoints();
+app.MapSignupEndpoints();
 app.MapStripeWebhookEndpoints();
 
 // --- DryRun Safety Check (non-Development) ---

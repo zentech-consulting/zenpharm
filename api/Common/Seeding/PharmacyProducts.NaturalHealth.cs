@@ -1,0 +1,33 @@
+namespace Api.Common.Seeding;
+
+internal static partial class PharmacyMasterProductData
+{
+    internal static readonly SeedProduct[] NaturalHealth =
+    [
+        new("NAT-EUCA-50", "Bosisto's Eucalyptus Oil", "Natural Health", "Australian eucalyptus essential oil for inhalation", 12.99m, "Eucalyptus oil", "Bosisto's", "9310160810106", "Unscheduled", "50ml", "Eucalyptus oil 100%", "For external use and inhalation only."),
+        new("NAT-TLVR-50", "Thursday Plantation Tea Tree Oil", "Natural Health", "Pure Australian tea tree essential oil", 14.99m, "Melaleuca oil", "Thursday Plantation", "9312146001010", "Unscheduled", "50ml", "Melaleuca alternifolia oil 100%", "For external use only."),
+        new("NAT-ECHN-60", "Blackmores Echinacea Forte", "Natural Health", "Immune support during winter", 19.99m, "Echinacea", "Blackmores", "9300807050016", "Unscheduled", "60 tablets", "Echinacea purpurea root extract 3000mg", null),
+        new("NAT-GRLC-60", "Blackmores Garlic Tablets", "Natural Health", "Supports cardiovascular and immune health", 14.99m, "Garlic", "Blackmores", "9300807050023", "Unscheduled", "60 tablets", "Garlic oil 3mg (equiv. fresh garlic 3g)", null),
+        new("NAT-GNGR-60", "Blackmores Travel Calm Ginger", "Natural Health", "Natural relief for motion sickness and nausea", 16.99m, "Ginger", "Blackmores", "9300807050030", "Unscheduled", "45 tablets", "Zingiber officinale (ginger) extract 400mg", null),
+        new("NAT-VLRN-60", "Swisse Ultiboost Sleep", "Natural Health", "Natural sleep support with valerian and magnesium", 24.99m, "Valerian", "Swisse", "9311770610107", "Unscheduled", "60 tablets", "Valerian root extract 500mg, Magnesium 150mg", "May cause drowsiness."),
+        new("NAT-CHMML-25", "Twinings Chamomile Tea", "Natural Health", "Soothing herbal tea for relaxation", 5.99m, null, "Twinings", "9310160830012", "Unscheduled", "25 tea bags", "Chamomile flowers", null),
+        new("NAT-MNUKA-250", "Manuka Health MGO 400+ Manuka Honey", "Natural Health", "Premium New Zealand Manuka honey", 54.99m, null, "Manuka Health", "9421023620012", "Unscheduled", "250g", "Manuka honey (MGO 400+)", null),
+        new("NAT-PPRMNT-25", "Thursday Plantation Peppermint Oil", "Natural Health", "Pure peppermint essential oil", 11.99m, "Peppermint oil", "Thursday Plantation", "9312146001027", "Unscheduled", "25ml", "Mentha piperita oil 100%", "For external use only. Do not ingest undiluted."),
+        new("NAT-ARNCMG-50", "Brauer Arnica Cream", "Natural Health", "Homeopathic cream for bruises and muscle pain", 14.99m, "Arnica", "Brauer", "9316090040013", "Unscheduled", "50g", "Arnica montana D1", null),
+        new("NAT-ELDRB-60", "Nature's Way Sambucus Elderberry Gummies", "Natural Health", "Immune support gummies with elderberry", 19.99m, "Elderberry", "Nature's Way", "9316090010029", "Unscheduled", "60 gummies", "Sambucus nigra (elderberry) extract, Vitamin C, Zinc", null),
+        new("NAT-OLIVE-60", "Comvita Olive Leaf Extract", "Natural Health", "Supports immune defence and cardiovascular health", 29.99m, "Olive leaf extract", "Comvita", "9400501000012", "Unscheduled", "60 capsules", "Olive leaf extract (oleuropein 66mg)", null),
+        new("NAT-STHJNS-60", "Blackmores Hyperiforte St John's Wort", "Natural Health", "Herbal support for mild mood imbalances", 24.99m, "St John's Wort", "Blackmores", "9300807050047", "Unscheduled", "60 tablets", "Hypericum perforatum extract 1800mg (hypericin 990mcg)", "May interact with many medications. Consult your pharmacist."),
+        new("NAT-GINKGO-60", "Blackmores Ginkgoforte", "Natural Health", "Supports memory and blood circulation", 29.99m, "Ginkgo biloba", "Blackmores", "9300807050054", "Unscheduled", "60 tablets", "Ginkgo biloba leaf extract 2000mg", "May interact with blood thinners."),
+        new("NAT-LAVND-25", "Thursday Plantation Lavender Oil", "Natural Health", "Pure lavender essential oil for calm", 13.99m, "Lavender oil", "Thursday Plantation", "9312146001034", "Unscheduled", "25ml", "Lavandula angustifolia oil 100%", "For external use and aromatherapy."),
+        new("NAT-KAVA-30", "Blackmores Executive Stress Formula", "Natural Health", "B vitamins and herbs for stress support", 19.99m, null, "Blackmores", "9300807050061", "Unscheduled", "30 tablets", "B vitamins, Passionflower, Oat straw", null),
+        new("NAT-ALOE-200", "Banana Boat Aloe Vera Gel", "Natural Health", "Soothing gel for minor burns and sunburn", 9.99m, "Aloe vera", "Banana Boat", "9310160840011", "Unscheduled", "200g", "Aloe barbadensis leaf juice", null),
+        new("NAT-PROPLS-25", "Comvita Propolis Extract", "Natural Health", "Natural bee propolis for immune support", 24.99m, "Propolis", "Comvita", "9400501000029", "Unscheduled", "25ml", "Propolis extract (flavonoids 12mg/ml)", null),
+        new("NAT-RYLJ-60", "Nature's Way Royal Jelly 1000mg", "Natural Health", "Premium royal jelly for energy and vitality", 34.99m, "Royal Jelly", "Nature's Way", "9316090010036", "Unscheduled", "60 capsules", "Royal jelly 1000mg (10-HDA 6mg)", "Not suitable for those with bee product allergies."),
+        new("NAT-ROSHIP-60", "Blackmores Bio C Rosehip", "Natural Health", "Vitamin C with rosehip for immune support", 16.99m, "Vitamin C + Rosehip", "Blackmores", "9300807050078", "Unscheduled", "60 tablets", "Ascorbic acid 1000mg, Rosa canina fruit extract 25mg", null),
+        new("NAT-CLORPH-60", "Nature's Way Super Chlorophyll", "Natural Health", "Plant-based detox and alkalising support", 14.99m, "Chlorophyll", "Nature's Way", "9316090010043", "Unscheduled", "60 tablets", "Sodium copper chlorophyllin 100mg", null),
+        new("NAT-BRMLNE-30", "Blackmores Bio Bromelain", "Natural Health", "Pineapple enzyme for anti-inflammatory support", 17.99m, "Bromelain", "Blackmores", "9300807050085", "Unscheduled", "30 tablets", "Bromelain 500mg (2000 GDU)", null),
+        new("NAT-CRNBRR-60", "Swisse Ultiboost Cranberry", "Natural Health", "Supports urinary tract health", 22.99m, "Cranberry", "Swisse", "9311770610114", "Unscheduled", "60 capsules", "Vaccinium macrocarpon fruit extract 25000mg", null),
+        new("NAT-ASTRGL-60", "Fusion Health Astra 8 Immune Tonic", "Natural Health", "Traditional Chinese medicine immune formula", 34.99m, "Astragalus", "Fusion Health", "9316090050012", "Unscheduled", "60 tablets", "Astragalus root extract, Reishi, Siberian ginseng", null),
+        new("NAT-MGOCLR-500", "Manuka Health MGO 100+ Manuka Honey", "Natural Health", "Everyday Manuka honey for wellness", 29.99m, null, "Manuka Health", "9421023620029", "Unscheduled", "500g", "Manuka honey (MGO 100+)", null),
+    ];
+}

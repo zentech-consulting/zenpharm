@@ -45,6 +45,9 @@ internal static partial class PharmacyMasterProductData
         groups.AddRange(OtherPrescription ?? []);
         groups.AddRange(WoundCare ?? []);
         groups.AddRange(SportsMedicine ?? []);
+        groups.AddRange(Supplements ?? []);
+        groups.AddRange(NaturalHealth ?? []);
+        groups.AddRange(SunProtection ?? []);
         return groups.ToArray();
     }
 }

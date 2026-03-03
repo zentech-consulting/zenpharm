@@ -26,6 +26,37 @@ public class CatalogMigrationTests
         Assert.Contains("ShortName", migrationSql);
     }
 
+    [Fact]
+    public void Migration009_ContainsIdempotencyCheck()
+    {
+        var migrationSql = GetMigrationSql("009_PendingSignups");
+        Assert.Contains("IF NOT EXISTS", migrationSql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("PendingSignups", migrationSql);
+    }
+
+    [Fact]
+    public void Migration009_CreatesAllRequiredColumns()
+    {
+        var migrationSql = GetMigrationSql("009_PendingSignups");
+        Assert.Contains("PharmacyName", migrationSql);
+        Assert.Contains("Subdomain", migrationSql);
+        Assert.Contains("AdminEmail", migrationSql);
+        Assert.Contains("AdminFullName", migrationSql);
+        Assert.Contains("PlanId", migrationSql);
+        Assert.Contains("BillingPeriod", migrationSql);
+        Assert.Contains("StripeSessionId", migrationSql);
+        Assert.Contains("StripeCustomerId", migrationSql);
+        Assert.Contains("StripeSubscriptionId", migrationSql);
+        Assert.Contains("Status", migrationSql);
+        Assert.Contains("TenantId", migrationSql);
+        Assert.Contains("FailureReason", migrationSql);
+        Assert.Contains("pending_payment", migrationSql);
+        Assert.Contains("provisioning", migrationSql);
+        Assert.Contains("active", migrationSql);
+        Assert.Contains("failed", migrationSql);
+        Assert.Contains("expired", migrationSql);
+    }
+
     private static string GetMigrationSql(string name)
     {
         // Access the CatalogDdl field via reflection since it's private static
