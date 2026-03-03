@@ -207,6 +207,9 @@ internal sealed class DevSeedService(
         // Import products + stock
         await SeedTenantProductsAsync(conn, ct);
 
+        // Sample orders for shop demo
+        await SeedOrdersAsync(conn, clientIds, ct);
+
         // Knowledge entries for AI
         await SeedKnowledgeEntriesAsync(conn, ct);
     }
@@ -557,6 +560,120 @@ internal sealed class DevSeedService(
             WHERE ExpiryDate > DATEADD(MONTH, 6, SYSUTCDATETIME())
             """;
         await conn.ExecuteAsync(new CommandDefinition(expirySql, cancellationToken: ct));
+    }
+
+    private static async Task SeedOrdersAsync(
+        System.Data.Common.DbConnection conn, Guid[] clientIds, CancellationToken ct)
+    {
+        if (clientIds.Length < 5) return;
+
+        // Check if orders already seeded
+        var existing = await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition("SELECT COUNT(*) FROM dbo.Orders", cancellationToken: ct));
+        if (existing > 0) return;
+
+        // Get some product IDs for order items
+        var products = (await conn.QueryAsync<(Guid Id, string Name, decimal Price)>(
+            new CommandDefinition(
+                "SELECT TOP 10 Id, COALESCE(CustomName, MasterProductName) AS Name, COALESCE(CustomPrice, DefaultPrice) AS Price FROM dbo.TenantProducts WHERE IsVisible = 1 AND ScheduleClass != 'S4' ORDER BY SortOrder",
+                cancellationToken: ct))).ToArray();
+
+        if (products.Length < 3) return;
+
+        var today = DateTime.UtcNow.ToString("yyyyMMdd");
+        var orders = new (int ClientIdx, string Status, int DayOffset, (int ProdIdx, int Qty)[] Items, string? Notes, string? CancelReason)[]
+        {
+            (0, "pending",   0, [(0, 2), (1, 1)], "Please have ready by lunch", null),
+            (1, "pending",   0, [(2, 1), (3, 3)], null, null),
+            (2, "ready",    -1, [(0, 1), (4, 2)], null, null),
+            (3, "collected", -3, [(1, 2)], "Picking up on the way home", null),
+            (4, "cancelled", -2, [(2, 5), (0, 1)], null, "Customer changed their mind"),
+        };
+
+        var seq = 0;
+        foreach (var o in orders)
+        {
+            seq++;
+            var clientId = clientIds[o.ClientIdx % clientIds.Length];
+            var orderDate = DateTime.UtcNow.AddDays(o.DayOffset).ToString("yyyyMMdd");
+            var orderNumber = $"ORD-{orderDate}-{seq:D4}";
+
+            decimal subtotal = 0;
+            foreach (var (prodIdx, qty) in o.Items)
+            {
+                var prod = products[prodIdx % products.Length];
+                subtotal += prod.Price * qty;
+            }
+            var taxAmount = Math.Round(subtotal * 0.10m, 2);
+            var total = subtotal + taxAmount;
+
+            var estimatedReady = DateTimeOffset.UtcNow.AddHours(2);
+
+            // Insert order
+            var insertSql = """
+                DECLARE @OrdId TABLE(Id UNIQUEIDENTIFIER);
+                INSERT INTO dbo.Orders (OrderNumber, ClientId, Status, Subtotal, TaxAmount, Total, Notes, EstimatedReadyAt, CancellationReason)
+                OUTPUT INSERTED.Id INTO @OrdId
+                VALUES (@OrderNumber, @ClientId, @Status, @Subtotal, @TaxAmount, @Total, @Notes, @EstimatedReadyAt, @CancellationReason);
+                SELECT Id FROM @OrdId;
+                """;
+
+            var orderId = await conn.QuerySingleAsync<Guid>(
+                new CommandDefinition(insertSql, new
+                {
+                    OrderNumber = orderNumber,
+                    ClientId = clientId,
+                    Status = o.Status,
+                    Subtotal = subtotal,
+                    TaxAmount = taxAmount,
+                    Total = total,
+                    Notes = o.Notes,
+                    EstimatedReadyAt = estimatedReady,
+                    CancellationReason = o.CancelReason
+                }, cancellationToken: ct));
+
+            // Set timestamps based on status
+            if (o.Status is "ready" or "collected")
+            {
+                await conn.ExecuteAsync(new CommandDefinition(
+                    "UPDATE dbo.Orders SET ReadyNotifiedAt = DATEADD(DAY, @Offset, SYSUTCDATETIME()) WHERE Id = @Id",
+                    new { Offset = o.DayOffset, Id = orderId }, cancellationToken: ct));
+            }
+            if (o.Status == "collected")
+            {
+                await conn.ExecuteAsync(new CommandDefinition(
+                    "UPDATE dbo.Orders SET CollectedAt = DATEADD(DAY, @Offset, SYSUTCDATETIME()) WHERE Id = @Id",
+                    new { Offset = o.DayOffset, Id = orderId }, cancellationToken: ct));
+            }
+            if (o.Status == "cancelled")
+            {
+                await conn.ExecuteAsync(new CommandDefinition(
+                    "UPDATE dbo.Orders SET CancelledAt = DATEADD(DAY, @Offset, SYSUTCDATETIME()) WHERE Id = @Id",
+                    new { Offset = o.DayOffset, Id = orderId }, cancellationToken: ct));
+            }
+
+            // Insert order items
+            foreach (var (prodIdx, qty) in o.Items)
+            {
+                var prod = products[prodIdx % products.Length];
+                var itemSubtotal = prod.Price * qty;
+
+                await conn.ExecuteAsync(new CommandDefinition(
+                    """
+                    INSERT INTO dbo.OrderItems (OrderId, TenantProductId, ProductName, Quantity, UnitPrice, Subtotal)
+                    VALUES (@OrderId, @TenantProductId, @ProductName, @Quantity, @UnitPrice, @Subtotal)
+                    """,
+                    new
+                    {
+                        OrderId = orderId,
+                        TenantProductId = prod.Id,
+                        ProductName = prod.Name,
+                        Quantity = qty,
+                        UnitPrice = prod.Price,
+                        Subtotal = itemSubtotal
+                    }, cancellationToken: ct));
+            }
+        }
     }
 
     private static async Task SeedKnowledgeEntriesAsync(System.Data.Common.DbConnection conn, CancellationToken ct)
