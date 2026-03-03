@@ -2,6 +2,7 @@ using System.Text;
 using Api.Common;
 using Api.Common.Migrations;
 using Api.Common.Seeding;
+using Api.Common.Security;
 using Api.Common.Tenancy;
 using Api.Features.AiChat;
 using Api.Features.AiChat.Tools;
@@ -159,8 +160,9 @@ builder.Services.AddScoped<IShopManager, ShopManager>();
 builder.Services.AddScoped<IOrderManager, OrderManager>();
 builder.Services.AddSingleton<IProvisioningPipeline, ProvisioningPipeline>();
 
-// --- Dev Seed (Development only) ---
-if (builder.Environment.IsDevelopment())
+// --- Dev Seed (Development or Seeding:Enabled) ---
+var seedingEnabled = builder.Configuration.GetValue("Seeding:Enabled", false);
+if (builder.Environment.IsDevelopment() || seedingEnabled)
     builder.Services.AddSingleton<IDevSeedService, DevSeedService>();
 
 // --- HTTP Clients ---
@@ -176,13 +178,44 @@ builder.Services.AddHttpClient("SmsBroadcast", client =>
 
 var app = builder.Build();
 
-// --- Catalogue Database Migration + Dev Seed ---
+// --- Catalogue Database Migration + Tenant Migrations + Seed ---
 using (var scope = app.Services.CreateScope())
 {
     var catalogMigration = scope.ServiceProvider.GetRequiredService<ICatalogMigration>();
     await catalogMigration.RunAllAsync();
 
-    if (app.Environment.IsDevelopment())
+    // Run tenant migrations for all known tenants (ensures new DDL like Orders table is applied)
+    var tenantMigration = scope.ServiceProvider.GetRequiredService<ITenantMigration>();
+    var protector = scope.ServiceProvider.GetRequiredService<IConnectionStringProtector>();
+    var catalogDb = scope.ServiceProvider.GetRequiredService<ICatalogDb>();
+
+    try
+    {
+        using var conn = await catalogDb.CreateAsync();
+        var tenants = await Dapper.SqlMapper.QueryAsync<(string ConnectionString, string Subdomain)>(
+            conn, "SELECT ConnectionString, Subdomain FROM dbo.Tenants WHERE Status = 'Active'");
+
+        foreach (var tenant in tenants)
+        {
+            try
+            {
+                var decrypted = protector.Unprotect(tenant.ConnectionString);
+                await tenantMigration.RunAllAsync(decrypted);
+                app.Logger.LogInformation("Tenant migrations applied for {Subdomain}", tenant.Subdomain);
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogWarning(ex, "Tenant migration failed for {Subdomain} — skipping", tenant.Subdomain);
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not iterate tenants for migration — tenant migrations skipped");
+    }
+
+    // Dev seed: runs in Development OR when Seeding:Enabled=true
+    if (app.Environment.IsDevelopment() || app.Configuration.GetValue("Seeding:Enabled", false))
     {
         var devSeed = scope.ServiceProvider.GetService<IDevSeedService>();
         if (devSeed is not null)

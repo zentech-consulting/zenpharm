@@ -52,7 +52,7 @@ internal sealed class DevSeedService(
             {
                 await SeedSubscriptionAsync(conn, devTenantId.Value, basicPlanId.Value, "Basic", ct);
                 await tenantMigration.RunAllAsync(tenantConnString, ct);
-                await SeedTenantDataAsync(tenantConnString, isDemoRich: true, ct);
+                await SeedTenantDataAsync(tenantConnString, catalogDb, isDemoRich: true, logger, ct);
                 logger.LogInformation("Dev seed: Basic tenant '{Subdomain}' seeded", subdomain);
             }
 
@@ -179,7 +179,9 @@ internal sealed class DevSeedService(
 
     // ─── Tenant DB Seed Methods ──────────────────────────────────────────
 
-    private static async Task SeedTenantDataAsync(string connectionString, bool isDemoRich, CancellationToken ct)
+    private static async Task SeedTenantDataAsync(
+        string connectionString, ICatalogDb catalogDb, bool isDemoRich,
+        ILogger logger, CancellationToken ct)
     {
         await using var conn = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
         await conn.OpenAsync(ct);
@@ -204,11 +206,25 @@ internal sealed class DevSeedService(
         // Bookings (need client, service, employee IDs)
         await SeedBookingsAsync(conn, clientIds, serviceIds, employeeIds, ct);
 
-        // Import products + stock
-        await SeedTenantProductsAsync(conn, ct);
+        // Import products + stock (reads MasterProducts from catalog DB, writes to tenant DB)
+        try
+        {
+            await SeedTenantProductsAsync(conn, catalogDb, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Seed tenant products failed — continuing with remaining seed steps");
+        }
 
         // Sample orders for shop demo
-        await SeedOrdersAsync(conn, clientIds, ct);
+        try
+        {
+            await SeedOrdersAsync(conn, clientIds, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Seed orders failed — continuing with remaining seed steps");
+        }
 
         // Knowledge entries for AI
         await SeedKnowledgeEntriesAsync(conn, ct);
@@ -501,36 +517,74 @@ internal sealed class DevSeedService(
         }
     }
 
-    private static async Task SeedTenantProductsAsync(System.Data.Common.DbConnection conn, CancellationToken ct)
+    private static async Task SeedTenantProductsAsync(
+        System.Data.Common.DbConnection tenantConn, ICatalogDb catalogDb, CancellationToken ct)
     {
         // Import first 50 master products into tenant with realistic stock levels
         const string countSql = "SELECT COUNT(*) FROM dbo.TenantProducts";
-        var existing = await conn.ExecuteScalarAsync<int>(new CommandDefinition(countSql, cancellationToken: ct));
+        var existing = await tenantConn.ExecuteScalarAsync<int>(new CommandDefinition(countSql, cancellationToken: ct));
         if (existing > 0) return; // Already seeded
 
-        const string importSql = """
-            INSERT INTO dbo.TenantProducts
-                (MasterProductId, MasterProductName, GenericName, Brand, Category,
-                 ScheduleClass, DefaultPrice, StockQuantity, ReorderLevel, ExpiryDate,
-                 IsVisible, IsFeatured, SortOrder)
+        // Read master products from catalog DB (separate database in production)
+        using var catalogConn = await catalogDb.CreateAsync();
+        const string readMasterSql = """
             SELECT TOP 50
-                mp.Id, mp.Name, mp.GenericName, mp.Brand, mp.Category,
-                mp.ScheduleClass, mp.UnitPrice,
-                ABS(CHECKSUM(NEWID())) % 80 + 10,  -- Random stock: 10-89
-                CASE mp.ScheduleClass
-                    WHEN 'S4' THEN 5
-                    WHEN 'S3' THEN 10
-                    ELSE 15
-                END,
-                DATEADD(MONTH, ABS(CHECKSUM(NEWID())) % 24 + 3, SYSUTCDATETIME()), -- 3-27 months from now
-                1,
-                CASE WHEN ROW_NUMBER() OVER (ORDER BY mp.Category, mp.Name) <= 10 THEN 1 ELSE 0 END,
-                ROW_NUMBER() OVER (ORDER BY mp.Category, mp.Name)
-            FROM dbo.MasterProducts mp
-            ORDER BY mp.Category, mp.Name
+                Id, Name, GenericName, Brand, Category, ScheduleClass, UnitPrice
+            FROM dbo.MasterProducts
+            ORDER BY Category, Name
+            """;
+        var masterProducts = (await catalogConn.QueryAsync<(
+            Guid Id, string Name, string? GenericName, string? Brand, string Category,
+            string ScheduleClass, decimal UnitPrice)>(
+            new CommandDefinition(readMasterSql, cancellationToken: ct))).ToArray();
+
+        if (masterProducts.Length == 0) return;
+
+        // Insert into tenant DB row by row (cross-DB insert not possible)
+        var rng = new Random(42); // deterministic for consistency
+        const string insertSql = """
+            IF NOT EXISTS (SELECT 1 FROM dbo.TenantProducts WHERE MasterProductId = @MasterProductId)
+            BEGIN
+                INSERT INTO dbo.TenantProducts
+                    (MasterProductId, MasterProductName, GenericName, Brand, Category,
+                     ScheduleClass, DefaultPrice, StockQuantity, ReorderLevel, ExpiryDate,
+                     IsVisible, IsFeatured, SortOrder)
+                VALUES
+                    (@MasterProductId, @MasterProductName, @GenericName, @Brand, @Category,
+                     @ScheduleClass, @DefaultPrice, @StockQuantity, @ReorderLevel, @ExpiryDate,
+                     1, @IsFeatured, @SortOrder);
+            END
             """;
 
-        await conn.ExecuteAsync(new CommandDefinition(importSql, cancellationToken: ct));
+        var sortOrder = 0;
+        foreach (var mp in masterProducts)
+        {
+            sortOrder++;
+            var stockQty = rng.Next(10, 90);
+            var reorderLevel = mp.ScheduleClass switch
+            {
+                "S4" => 5,
+                "S3" => 10,
+                _ => 15
+            };
+            var expiryMonths = rng.Next(3, 28);
+
+            await tenantConn.ExecuteAsync(new CommandDefinition(insertSql, new
+            {
+                MasterProductId = mp.Id,
+                MasterProductName = mp.Name,
+                GenericName = mp.GenericName,
+                Brand = mp.Brand,
+                Category = mp.Category,
+                ScheduleClass = mp.ScheduleClass,
+                DefaultPrice = mp.UnitPrice,
+                StockQuantity = stockQty,
+                ReorderLevel = reorderLevel,
+                ExpiryDate = DateTime.UtcNow.AddMonths(expiryMonths),
+                IsFeatured = sortOrder <= 10,
+                SortOrder = sortOrder
+            }, cancellationToken: ct));
+        }
 
         // Record initial stock-in movements for all imported products
         const string stockMovementSql = """
@@ -543,7 +597,7 @@ internal sealed class DevSeedService(
             )
             """;
 
-        await conn.ExecuteAsync(new CommandDefinition(stockMovementSql, cancellationToken: ct));
+        await tenantConn.ExecuteAsync(new CommandDefinition(stockMovementSql, cancellationToken: ct));
 
         // Set a few products as low stock for demo purposes
         const string lowStockSql = """
@@ -551,7 +605,7 @@ internal sealed class DevSeedService(
             SET StockQuantity = ReorderLevel - 2
             WHERE StockQuantity > ReorderLevel
             """;
-        await conn.ExecuteAsync(new CommandDefinition(lowStockSql, cancellationToken: ct));
+        await tenantConn.ExecuteAsync(new CommandDefinition(lowStockSql, cancellationToken: ct));
 
         // Set 3 products with near-expiry dates
         const string expirySql = """
@@ -559,7 +613,7 @@ internal sealed class DevSeedService(
             SET ExpiryDate = DATEADD(DAY, 14, SYSUTCDATETIME())
             WHERE ExpiryDate > DATEADD(MONTH, 6, SYSUTCDATETIME())
             """;
-        await conn.ExecuteAsync(new CommandDefinition(expirySql, cancellationToken: ct));
+        await tenantConn.ExecuteAsync(new CommandDefinition(expirySql, cancellationToken: ct));
     }
 
     private static async Task SeedOrdersAsync(
