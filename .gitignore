@@ -32,3 +32,7 @@ Thumbs.db
 # Secrets
 *.pfx
 *.key
+
+# Deployment artefacts
+publish*/
+deploy*.zip

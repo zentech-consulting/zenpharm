@@ -172,4 +172,12 @@ public class SubdomainExtractionTests
         var maxSubdomain = new string('a', 63);
         Assert.True(TenantMiddleware.IsValidSubdomain(maxSubdomain));
     }
+
+    // --- X-Tenant-Subdomain header tests ---
+
+    [Fact]
+    public void TenantSubdomainHeader_ConstantName()
+    {
+        Assert.Equal("X-Tenant-Subdomain", TenantMiddleware.TenantSubdomainHeader);
+    }
 }

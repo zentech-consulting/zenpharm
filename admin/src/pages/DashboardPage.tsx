@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons'
 import { fetchDashboardSummary, type DashboardSummary } from '../api/reports'
 import { fetchSessionSummary, type SessionSummary } from '../api/auth'
+import { useBranding } from '../contexts/BrandingContext'
 
 const { Title } = Typography
 
@@ -19,6 +20,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null)
   const [loading, setLoading] = useState(true)
+  const { branding } = useBranding()
 
   useEffect(() => {
     const load = async () => {
@@ -40,6 +42,11 @@ export default function DashboardPage() {
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />
 
+  const primaryColour = branding.primaryColour
+  const highlightColour = branding.highlightColour ?? '#e94560'
+  const accentColour = branding.accentColour ?? '#0f3460'
+  const secondaryColour = branding.secondaryColour ?? '#16213e'
+
   const sessionValue = sessionSummary?.activeSessions ?? 0
   const sessionSuffix = sessionSummary ? `/ ${sessionSummary.maxSessions}` : ''
   const sessionColour = sessionSummary && sessionSummary.activeSessions >= sessionSummary.maxSessions
@@ -47,10 +54,10 @@ export default function DashboardPage() {
     : '#27ae60'
 
   const stats = [
-    { title: 'Total Clients', value: summary?.totalClients ?? 0, icon: <TeamOutlined />, colour: '#1a1a2e' },
-    { title: 'Total Bookings', value: summary?.totalBookings ?? 0, icon: <CalendarOutlined />, colour: '#0f3460' },
-    { title: 'Active Staff', value: summary?.totalEmployees ?? 0, icon: <UserOutlined />, colour: '#16213e' },
-    { title: 'Revenue', value: summary?.revenue ?? 0, icon: <DollarOutlined />, colour: '#e94560', prefix: '$' },
+    { title: 'Total Clients', value: summary?.totalClients ?? 0, icon: <TeamOutlined />, colour: primaryColour },
+    { title: 'Total Bookings', value: summary?.totalBookings ?? 0, icon: <CalendarOutlined />, colour: accentColour },
+    { title: 'Active Staff', value: summary?.totalEmployees ?? 0, icon: <UserOutlined />, colour: secondaryColour },
+    { title: 'Revenue', value: summary?.revenue ?? 0, icon: <DollarOutlined />, colour: highlightColour, prefix: '$' },
     { title: 'Total Products', value: summary?.totalProducts ?? 0, icon: <MedicineBoxOutlined />, colour: '#2e86de' },
     { title: 'Low Stock', value: summary?.lowStockCount ?? 0, icon: <WarningOutlined />, colour: '#ee5a24' },
     { title: 'Expiring Soon', value: summary?.expiringCount ?? 0, icon: <ClockCircleOutlined />, colour: '#f39c12' },

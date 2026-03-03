@@ -125,6 +125,27 @@
   - Admin: https://kind-tree-093309e00.4.azurestaticapps.net
   - Public: https://zealous-flower-0e43e0200.1.azurestaticapps.net
 
+### Phase 4: Per-Tenant Frontends (Multi-Tenant Branding)
+
+- **状态**: completed
+- **优先级**: high
+- **创建**: 2026-03-03
+- **更新**: 2026-03-03
+- **描述**: Per-tenant branding system. Each subscribing pharmacy gets its own branded public storefront and admin panel via dynamic branding.
+- **Branch**: `feat/phase4-tenant-branding`
+- **子任务**:
+  1. [x] Catalogue migration 008 — Branding columns (SecondaryColour, AccentColour, HighlightColour, Tagline, FaviconUrl, ShortName)
+  2. [x] TenantMiddleware — X-Tenant-Subdomain header support (header priority over Host extraction)
+  3. [x] Branding API endpoint — GET /api/branding (AllowAnonymous, queries catalog DB for extended branding)
+  4. [x] JWT tenant_id claim + TenantClaimValidationMiddleware (cross-tenant token theft prevention)
+  5. [x] Dynamic CORS — SetIsOriginAllowed with AllowedDomains config for wildcard subdomain matching
+  6. [x] Seed branding data — distinct colours for dev (dark blue/red) and premium-demo (teal/gold) tenants
+  7. [x] Public frontend API client — apiFetch wrapper with X-Tenant-Subdomain header, detectSubdomain utility
+  8. [x] Public BrandingProvider — CSS custom properties, dynamic document.title, fallback defaults
+  9. [x] Replace hardcoded branding — Layout, HomePage, AboutPage use branding context
+  10. [x] Admin frontend — tenant header, BrandingProvider, dynamic Ant Design ConfigProvider theme
+- **统计**: 319 backend tests pass (+25 new), 8 frontend tests pass, 0 TS errors
+
 ### Phase 2.5: ZenPharm Premium Features
 
 - **状态**: pending

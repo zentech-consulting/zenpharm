@@ -403,6 +403,51 @@ public class AuthManagerTests
         Assert.Contains("at least 32 characters", ex.Message);
     }
 
+    // ================================================================
+    // tenant_id Claim Tests
+    // ================================================================
+
+    [Fact]
+    public void GenerateAccessToken_WithTenantId_IncludesTenantIdClaim()
+    {
+        var manager = CreateManager();
+        var tenantId = Guid.NewGuid();
+        var user = new AdminUserEntity
+        {
+            Id = Guid.NewGuid(),
+            Username = "testuser",
+            Role = "Admin"
+        };
+
+        var (token, _) = manager.GenerateAccessToken(user, tenantId);
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+
+        var claim = jwt.Claims.FirstOrDefault(c => c.Type == "tenant_id");
+        Assert.NotNull(claim);
+        Assert.Equal(tenantId.ToString(), claim.Value);
+    }
+
+    [Fact]
+    public void GenerateAccessToken_NullTenantId_OmitsTenantIdClaim()
+    {
+        var manager = CreateManager();
+        var user = new AdminUserEntity
+        {
+            Id = Guid.NewGuid(),
+            Username = "testuser",
+            Role = "Admin"
+        };
+
+        var (token, _) = manager.GenerateAccessToken(user, tenantId: null);
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+
+        Assert.DoesNotContain(jwt.Claims, c => c.Type == "tenant_id");
+    }
+
     [Fact]
     public void Constructor_DefaultConfigValues_AppliedCorrectly()
     {

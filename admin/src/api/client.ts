@@ -1,8 +1,19 @@
+import { detectSubdomain } from './tenant'
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean
   _isRetry?: boolean
+}
+
+function getTenantHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {}
+  const subdomain = detectSubdomain()
+  if (subdomain) {
+    headers['X-Tenant-Subdomain'] = subdomain
+  }
+  return headers
 }
 
 async function tryRefreshToken(): Promise<boolean> {
@@ -12,7 +23,10 @@ async function tryRefreshToken(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/api/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getTenantHeaders(),
+      },
       body: JSON.stringify({ refreshToken }),
     })
 
@@ -32,6 +46,7 @@ export async function apiFetch<T>(url: string, options: FetchOptions = {}): Prom
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...getTenantHeaders(),
     ...(customHeaders as Record<string, string>),
   }
 

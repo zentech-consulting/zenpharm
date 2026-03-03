@@ -14,15 +14,18 @@ import ProductsPage from './pages/ProductsPage'
 import SessionsPage from './pages/SessionsPage'
 import ReportsPage from './pages/ReportsPage'
 import OrdersPage from './pages/OrdersPage'
-
-const theme = {
-  token: {
-    colorPrimary: '#1a1a2e',
-    borderRadius: 8,
-  },
-}
+import { useBranding } from './contexts/BrandingContext'
 
 export default function App() {
+  const { branding } = useBranding()
+
+  const theme = {
+    token: {
+      colorPrimary: branding.primaryColour,
+      borderRadius: 8,
+    },
+  }
+
   return (
     <ConfigProvider theme={theme}>
       <Routes>

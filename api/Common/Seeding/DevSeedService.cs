@@ -43,10 +43,18 @@ internal sealed class DevSeedService(
             // 2. Seed master products (shared across all tenants)
             await SeedMasterProductsAsync(conn, ct);
 
-            // 3. Seed dev tenant (Basic plan)
+            // 3. Seed dev tenant (Basic plan) with distinct branding
+            var devBranding = new TenantBranding(
+                PrimaryColour: "#1a1a2e",
+                SecondaryColour: "#16213e",
+                AccentColour: "#0f3460",
+                HighlightColour: "#e94560",
+                ShortName: "ZP",
+                Tagline: "Your trusted community pharmacy");
+
             var encryptedConnString = protector.Protect(tenantConnString);
             var devTenantId = await SeedTenantAsync(conn, subdomain, "Dev Pharmacy",
-                encryptedConnString, "dev@zenpharm.local", ct);
+                encryptedConnString, "dev@zenpharm.local", devBranding, ct);
 
             if (devTenantId is not null)
             {
@@ -57,9 +65,17 @@ internal sealed class DevSeedService(
             }
 
             // 4. Seed premium demo tenant (same DB for dev, separate in production)
+            var premiumBranding = new TenantBranding(
+                PrimaryColour: "#0d4f4f",
+                SecondaryColour: "#1a3c34",
+                AccentColour: "#2d6a4f",
+                HighlightColour: "#d4a373",
+                ShortName: "PD",
+                Tagline: "Premium pharmacy care since 1985");
+
             var premiumSubdomain = "premium-demo";
             var premiumTenantId = await SeedTenantAsync(conn, premiumSubdomain, "Premium Demo Pharmacy",
-                encryptedConnString, "premium@zenpharm.local", ct);
+                encryptedConnString, "premium@zenpharm.local", premiumBranding, ct);
 
             if (premiumTenantId is not null)
             {
@@ -106,26 +122,60 @@ internal sealed class DevSeedService(
 
     private static async Task<Guid?> SeedTenantAsync(
         System.Data.IDbConnection conn, string subdomain, string displayName,
-        string connectionString, string contactEmail, CancellationToken ct)
+        string connectionString, string contactEmail,
+        TenantBranding? branding, CancellationToken ct)
     {
         const string sql = """
             IF NOT EXISTS (SELECT 1 FROM dbo.Tenants WHERE Subdomain = @Subdomain)
             BEGIN
                 DECLARE @TenantId TABLE(Id UNIQUEIDENTIFIER);
-                INSERT INTO dbo.Tenants (Subdomain, DisplayName, ConnectionString, ContactEmail)
+                INSERT INTO dbo.Tenants (Subdomain, DisplayName, ConnectionString, ContactEmail,
+                    PrimaryColour, SecondaryColour, AccentColour, HighlightColour,
+                    ShortName, Tagline)
                 OUTPUT INSERTED.Id INTO @TenantId
-                VALUES (@Subdomain, @DisplayName, @ConnectionString, @ContactEmail);
+                VALUES (@Subdomain, @DisplayName, @ConnectionString, @ContactEmail,
+                    @PrimaryColour, @SecondaryColour, @AccentColour, @HighlightColour,
+                    @ShortName, @Tagline);
                 SELECT Id FROM @TenantId;
             END
             ELSE
             BEGIN
+                UPDATE dbo.Tenants
+                SET PrimaryColour = @PrimaryColour,
+                    SecondaryColour = @SecondaryColour,
+                    AccentColour = @AccentColour,
+                    HighlightColour = @HighlightColour,
+                    ShortName = @ShortName,
+                    Tagline = @Tagline,
+                    UpdatedAt = SYSUTCDATETIME()
+                WHERE Subdomain = @Subdomain;
                 SELECT Id FROM dbo.Tenants WHERE Subdomain = @Subdomain;
             END
             """;
 
         return await conn.QuerySingleOrDefaultAsync<Guid?>(
-            new CommandDefinition(sql, new { Subdomain = subdomain, DisplayName = displayName, ConnectionString = connectionString, ContactEmail = contactEmail }, cancellationToken: ct));
+            new CommandDefinition(sql, new
+            {
+                Subdomain = subdomain,
+                DisplayName = displayName,
+                ConnectionString = connectionString,
+                ContactEmail = contactEmail,
+                PrimaryColour = branding?.PrimaryColour ?? "#1890ff",
+                SecondaryColour = branding?.SecondaryColour,
+                AccentColour = branding?.AccentColour,
+                HighlightColour = branding?.HighlightColour,
+                ShortName = branding?.ShortName,
+                Tagline = branding?.Tagline
+            }, cancellationToken: ct));
     }
+
+    internal sealed record TenantBranding(
+        string PrimaryColour,
+        string? SecondaryColour,
+        string? AccentColour,
+        string? HighlightColour,
+        string? ShortName,
+        string? Tagline);
 
     private static async Task SeedSubscriptionAsync(
         System.Data.IDbConnection conn, Guid tenantId, Guid planId, string planName, CancellationToken ct)

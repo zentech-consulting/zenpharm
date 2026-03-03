@@ -19,6 +19,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons'
+import { useBranding } from '../contexts/BrandingContext'
 
 const { Header, Sider, Content } = Layout
 
@@ -42,6 +43,7 @@ export default function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { token } = theme.useToken()
+  const { branding } = useBranding()
 
   const handleLogout = async () => {
     try {
@@ -68,7 +70,7 @@ export default function AdminLayout() {
             fontSize: collapsed ? 16 : 18,
           }}
         >
-          {collapsed ? 'ZP' : 'ZenPharm'}
+          {collapsed ? (branding.shortName ?? 'ZP') : branding.displayName}
         </div>
         <Menu
           theme="dark"

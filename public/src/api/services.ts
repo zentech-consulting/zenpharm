@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+import { apiFetch } from './client'
 
 export interface Service {
   id: string
@@ -19,7 +19,7 @@ export async function fetchServices(category?: string): Promise<ServiceList> {
   const params = new URLSearchParams({ page: '1', pageSize: '50' })
   if (category) params.set('category', category)
 
-  const res = await fetch(`${API_BASE}/api/services?${params}`)
+  const res = await apiFetch(`/api/services?${params}`)
   if (!res.ok) throw new Error(`Failed to fetch services: ${res.status}`)
   return res.json()
 }

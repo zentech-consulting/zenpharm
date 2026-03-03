@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { ShoppingCart } from 'lucide-react'
 import AiConsultant from '../features/ai-chat/AiConsultant'
 import { useCart } from '../contexts/CartContext'
+import { useBranding } from '../contexts/BrandingContext'
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -16,6 +17,7 @@ const navLinks = [
 export default function Layout() {
   const { pathname } = useLocation()
   const { itemCount } = useCart()
+  const { branding } = useBranding()
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -26,7 +28,9 @@ export default function Layout() {
       <header className="border-b border-surface-dark bg-white">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to="/" className="text-xl font-bold text-primary">
-            ZenPharm
+            {branding.logoUrl
+              ? <img src={branding.logoUrl} alt={branding.displayName} className="h-8" />
+              : branding.displayName}
           </Link>
           <div className="flex items-center gap-6">
             <ul className="flex gap-6">
@@ -63,7 +67,7 @@ export default function Layout() {
 
       <footer className="border-t border-surface-dark bg-primary py-8 text-white">
         <div className="mx-auto max-w-7xl px-6 text-center text-sm opacity-70">
-          &copy; {new Date().getFullYear()} ZenPharm. All rights reserved.
+          &copy; {new Date().getFullYear()} {branding.displayName}. All rights reserved.
         </div>
       </footer>
 

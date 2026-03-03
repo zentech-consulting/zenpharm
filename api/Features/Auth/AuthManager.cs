@@ -98,7 +98,7 @@ internal sealed class AuthManager(
         await EvictOldestSessionIfNeededAsync(conn, tenantId, ct);
 
         // 6. Generate tokens
-        var (accessToken, expiresAt) = GenerateAccessToken(user);
+        var (accessToken, expiresAt) = GenerateAccessToken(user, tenantId);
         var refreshToken = GenerateRefreshToken();
         var refreshTokenExpiry = DateTimeOffset.UtcNow.AddDays(
             request.RememberMe ? _refreshTokenDaysRememberMe : _refreshTokenDays);
@@ -126,6 +126,7 @@ internal sealed class AuthManager(
     // ================================================================
     public async Task<RefreshTokenResponse?> RefreshAccessTokenAsync(
         string refreshToken,
+        Guid? tenantId = null,
         CancellationToken ct = default)
     {
         logger.LogInformation("Refresh token attempt");
@@ -185,7 +186,7 @@ internal sealed class AuthManager(
             Role = tokenRecord.Role
         };
 
-        var (newAccessToken, newExpiresAt) = GenerateAccessToken(user);
+        var (newAccessToken, newExpiresAt) = GenerateAccessToken(user, tenantId);
 
         logger.LogInformation("Token refreshed successfully. UserId={UserId}", user.Id);
 
@@ -309,20 +310,23 @@ internal sealed class AuthManager(
     // Internal Static Helpers (testable via InternalsVisibleTo)
     // ================================================================
 
-    internal (string Token, DateTimeOffset ExpiresAt) GenerateAccessToken(AdminUserEntity user)
+    internal (string Token, DateTimeOffset ExpiresAt) GenerateAccessToken(AdminUserEntity user, Guid? tenantId = null)
     {
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_accessTokenMinutes);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
-            new Claim("fullName", user.FullName ?? ""),
-            new Claim(ClaimTypes.Role, user.Role),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.UniqueName, user.Username),
+            new(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+            new("fullName", user.FullName ?? ""),
+            new(ClaimTypes.Role, user.Role),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
         };
+
+        if (tenantId.HasValue)
+            claims.Add(new Claim("tenant_id", tenantId.Value.ToString()));
 
         var key = new SymmetricSecurityKey(_secretKey);
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
