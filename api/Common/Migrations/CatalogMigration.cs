@@ -173,6 +173,19 @@ internal sealed class CatalogMigration(
             BEGIN
                 ALTER TABLE dbo.Plans ADD MaxConcurrentSessions INT NOT NULL DEFAULT 5;
             END
+            """),
+
+        ("008_Tenants_BrandingColumns", """
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Tenants') AND name = 'SecondaryColour')
+            BEGIN
+                ALTER TABLE dbo.Tenants ADD
+                    SecondaryColour  NVARCHAR(7)    NULL,
+                    AccentColour     NVARCHAR(7)    NULL,
+                    HighlightColour  NVARCHAR(7)    NULL,
+                    Tagline          NVARCHAR(500)  NULL,
+                    FaviconUrl       NVARCHAR(500)  NULL,
+                    ShortName        NVARCHAR(10)   NULL;
+            END
             """)
     ];
 }

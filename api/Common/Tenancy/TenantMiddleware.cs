@@ -21,6 +21,8 @@ internal sealed partial class TenantMiddleware(
     [GeneratedRegex(@"^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?$", RegexOptions.IgnoreCase)]
     private static partial Regex SubdomainPattern();
 
+    internal const string TenantSubdomainHeader = "X-Tenant-Subdomain";
+
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "";
@@ -32,8 +34,20 @@ internal sealed partial class TenantMiddleware(
             return;
         }
 
+        // 1. Check X-Tenant-Subdomain header first (frontend sends this when SWA/API are on different hosts)
+        var headerSubdomain = context.Request.Headers[TenantSubdomainHeader].FirstOrDefault();
         var host = context.Request.Host.Host;
-        var subdomain = ExtractSubdomain(host, configuration);
+        string? subdomain;
+
+        if (!string.IsNullOrWhiteSpace(headerSubdomain))
+        {
+            subdomain = headerSubdomain;
+        }
+        else
+        {
+            // 2. Fall back to Host-based extraction
+            subdomain = ExtractSubdomain(host, configuration);
+        }
 
         // No subdomain (naked domain or reserved) → pass through without tenant
         if (subdomain is null)

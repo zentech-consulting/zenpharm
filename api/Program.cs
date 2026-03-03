@@ -18,6 +18,7 @@ using Api.Features.Products;
 using Api.Features.Reports;
 using Api.Features.Schedules;
 using Api.Features.Orders;
+using Api.Features.Branding;
 using Api.Features.Services;
 using Api.Features.Shop;
 using Dapper;
@@ -110,6 +111,11 @@ builder.Services.AddRateLimiter(opts =>
         o.PermitLimit = 5;
         o.Window = TimeSpan.FromMinutes(1);
     });
+    opts.AddFixedWindowLimiter("branding", o =>
+    {
+        o.PermitLimit = 30;
+        o.Window = TimeSpan.FromMinutes(1);
+    });
     opts.RejectionStatusCode = 429;
 });
 
@@ -118,12 +124,15 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
     ?? (builder.Environment.IsDevelopment()
         ? new[] { "http://localhost:51000", "http://localhost:51001" }
         : Array.Empty<string>());
+var allowedDomains = builder.Configuration.GetSection("Cors:AllowedDomains").Get<string[]>()
+    ?? Array.Empty<string>();
 
 builder.Services.AddCors(opts =>
 {
     opts.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.SetIsOriginAllowed(origin =>
+                Api.Common.CorsOriginValidator.IsOriginAllowed(origin, allowedOrigins, allowedDomains))
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -158,6 +167,7 @@ builder.Services.AddScoped<IMasterProductManager, MasterProductManager>();
 builder.Services.AddScoped<IProductManager, ProductManager>();
 builder.Services.AddScoped<IShopManager, ShopManager>();
 builder.Services.AddScoped<IOrderManager, OrderManager>();
+builder.Services.AddScoped<IBrandingManager, BrandingManager>();
 builder.Services.AddSingleton<IProvisioningPipeline, ProvisioningPipeline>();
 
 // --- Dev Seed (Development or Seeding:Enabled) ---
@@ -234,6 +244,7 @@ app.UseCors();
 app.UseTenantResolution();
 app.UseRateLimiter();
 app.UseAuthentication();
+app.UseTenantClaimValidation();
 app.UseAuthorization();
 
 // --- Health Check ---
@@ -280,6 +291,7 @@ app.MapMasterProductEndpoints();
 app.MapProductEndpoints();
 app.MapShopEndpoints();
 app.MapOrderEndpoints();
+app.MapBrandingEndpoints();
 app.MapPlatformEndpoints();
 app.MapStripeWebhookEndpoints();
 

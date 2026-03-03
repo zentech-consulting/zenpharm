@@ -154,6 +154,39 @@ public class DevSeedServiceTests
         await service.SeedAsync();
     }
 
+    // ================================================================
+    // TenantBranding Tests
+    // ================================================================
+
+    [Fact]
+    public void TenantBranding_DevTenant_HasExpectedValues()
+    {
+        var branding = new DevSeedService.TenantBranding(
+            PrimaryColour: "#1a1a2e",
+            SecondaryColour: "#16213e",
+            AccentColour: "#0f3460",
+            HighlightColour: "#e94560",
+            ShortName: "ZP",
+            Tagline: "Your trusted community pharmacy");
+
+        Assert.Equal("#1a1a2e", branding.PrimaryColour);
+        Assert.Equal("#e94560", branding.HighlightColour);
+        Assert.Equal("ZP", branding.ShortName);
+    }
+
+    [Fact]
+    public void TenantBranding_PremiumTenant_HasDistinctColours()
+    {
+        var dev = new DevSeedService.TenantBranding(
+            "#1a1a2e", "#16213e", "#0f3460", "#e94560", "ZP", "Dev tagline");
+        var premium = new DevSeedService.TenantBranding(
+            "#0d4f4f", "#1a3c34", "#2d6a4f", "#d4a373", "PD", "Premium tagline");
+
+        Assert.NotEqual(dev.PrimaryColour, premium.PrimaryColour);
+        Assert.NotEqual(dev.HighlightColour, premium.HighlightColour);
+        Assert.NotEqual(dev.ShortName, premium.ShortName);
+    }
+
     [Fact]
     public async Task DevSeedService_SeedAsync_SkipsWhenNoConnectionString()
     {

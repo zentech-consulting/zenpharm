@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+import { apiFetch } from './client'
 
 export interface ShopProduct {
   id: string
@@ -40,19 +40,19 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<S
   if (params.search) qs.set('search', params.search)
   if (params.featured) qs.set('featured', 'true')
 
-  const res = await fetch(`${API_BASE}/api/shop/products?${qs}`)
+  const res = await apiFetch(`/api/shop/products?${qs}`)
   if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`)
   return res.json()
 }
 
 export async function fetchProduct(id: string): Promise<ShopProductDetail> {
-  const res = await fetch(`${API_BASE}/api/shop/products/${id}`)
+  const res = await apiFetch(`/api/shop/products/${id}`)
   if (!res.ok) throw new Error(`Failed to fetch product: ${res.status}`)
   return res.json()
 }
 
 export async function fetchCategories(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/api/shop/categories`)
+  const res = await apiFetch(`/api/shop/categories`)
   if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`)
   return res.json()
 }

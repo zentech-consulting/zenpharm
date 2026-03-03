@@ -2,6 +2,7 @@ import { Form, Input, Button, Card, Typography, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { login } from '../api/auth'
+import { useBranding } from '../contexts/BrandingContext'
 
 const { Title } = Typography
 
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/'
+  const { branding } = useBranding()
 
   const onFinish = async (values: LoginFormValues) => {
     try {
@@ -39,7 +41,7 @@ export default function LoginPage() {
       <Card style={{ width: 400, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={3} style={{ marginBottom: 4 }}>
-            ZenPharm
+            {branding.displayName}
           </Title>
           <Typography.Text type="secondary">Admin Panel</Typography.Text>
         </div>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Sparkles, Calendar, Users, Package, ClipboardList, BarChart3 } from 'lucide-react'
+import { useBranding } from '../contexts/BrandingContext'
 
 const features = [
   {
@@ -35,6 +36,8 @@ const features = [
 ]
 
 export default function HomePage() {
+  const { branding } = useBranding()
+
   return (
     <>
       <section className="bg-primary px-6 py-24 text-white">
@@ -42,6 +45,9 @@ export default function HomePage() {
           <h1 className="mb-6 text-5xl font-bold leading-tight">
             Smart Pharmacy Management, <span className="text-highlight">Instantly</span>
           </h1>
+          {branding.tagline && (
+            <p className="mb-4 text-xl font-medium opacity-90">{branding.tagline}</p>
+          )}
           <p className="mb-8 text-lg opacity-80">
             The all-in-one platform built for Australian independent pharmacies.
             Catalogue, inventory, clients, scheduling, and AI — ready to go.
@@ -87,7 +93,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="mb-4 text-3xl font-bold text-primary">Ready to Modernise Your Pharmacy?</h2>
           <p className="mb-8 text-gray-600">
-            Join independent pharmacies across Australia already using ZenPharm to
+            Join independent pharmacies across Australia already using {branding.displayName} to
             streamline operations and deliver better patient care.
           </p>
           <Link

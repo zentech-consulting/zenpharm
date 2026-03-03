@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+import { apiFetch } from './client'
 
 export interface OrderItemRequest {
   productId: string
@@ -43,9 +43,8 @@ export interface Order {
 }
 
 export async function placeOrder(req: PlaceOrderRequest): Promise<Order> {
-  const res = await fetch(`${API_BASE}/api/shop/orders`, {
+  const res = await apiFetch(`/api/shop/orders`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
   })
   if (!res.ok) {
@@ -56,7 +55,7 @@ export async function placeOrder(req: PlaceOrderRequest): Promise<Order> {
 }
 
 export async function trackOrder(orderNumber: string): Promise<Order> {
-  const res = await fetch(`${API_BASE}/api/shop/orders/${encodeURIComponent(orderNumber)}`)
+  const res = await apiFetch(`/api/shop/orders/${encodeURIComponent(orderNumber)}`)
   if (!res.ok) throw new Error(`Order not found: ${res.status}`)
   return res.json()
 }

@@ -21,9 +21,10 @@ public static class AuthEndpoints
         .RequireRateLimiting("auth-login")
         .WithOpenApi(op => { op.Summary = "Authenticate with username and password"; return op; });
 
-        g.MapPost("refresh", async Task<IResult> (RefreshTokenRequest req, IAuthManager mgr, CancellationToken ct) =>
+        g.MapPost("refresh", async Task<IResult> (RefreshTokenRequest req, IAuthManager mgr, HttpContext ctx, CancellationToken ct) =>
         {
-            var result = await mgr.RefreshAccessTokenAsync(req.RefreshToken, ct);
+            var tenantId = (ctx.Items["TenantContext"] as TenantContext)?.TenantId;
+            var result = await mgr.RefreshAccessTokenAsync(req.RefreshToken, tenantId, ct);
             return result is not null ? Results.Ok(result) : Results.Unauthorized();
         })
         .AllowAnonymous()

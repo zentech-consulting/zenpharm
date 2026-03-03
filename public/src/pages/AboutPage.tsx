@@ -1,4 +1,5 @@
 import { Heart, Target, Shield } from 'lucide-react'
+import { useBranding } from '../contexts/BrandingContext'
 
 const values = [
   {
@@ -22,11 +23,13 @@ const values = [
 ]
 
 export default function AboutPage() {
+  const { branding } = useBranding()
+
   return (
     <>
       <section className="bg-primary px-6 py-20 text-white">
         <div className="mx-auto max-w-4xl text-center">
-          <h1 className="mb-6 text-4xl font-bold">About ZenPharm</h1>
+          <h1 className="mb-6 text-4xl font-bold">About {branding.displayName}</h1>
           <p className="text-lg leading-relaxed opacity-80">
             We build smart pharmacy management software for Australian independent
             pharmacies — helping you manage inventory, serve patients better, and
@@ -39,7 +42,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-4 text-3xl font-bold text-primary">Our Story</h2>
           <p className="mb-6 text-lg leading-relaxed text-gray-600">
-            ZenPharm was born from a simple observation: independent pharmacies
+            {branding.displayName} was born from a simple observation: independent pharmacies
             across Australia are running on outdated systems or expensive enterprise
             software that doesn&apos;t fit their needs. We set out to change that.
           </p>
