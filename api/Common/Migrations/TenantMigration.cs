@@ -332,6 +332,58 @@ internal sealed class TenantMigration(
             BEGIN
                 ALTER TABLE dbo.StockMovements ADD ApprovedBy NVARCHAR(200) NULL;
             END
+            """),
+
+        ("017_Orders", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Orders' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.Orders (
+                    Id                  UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    OrderNumber         NVARCHAR(20)     NOT NULL,
+                    ClientId            UNIQUEIDENTIFIER NOT NULL,
+                    Status              NVARCHAR(20)     NOT NULL DEFAULT 'pending',
+                    Subtotal            DECIMAL(10,2)    NOT NULL,
+                    TaxAmount           DECIMAL(10,2)    NOT NULL DEFAULT 0,
+                    Total               DECIMAL(10,2)    NOT NULL,
+                    Notes               NVARCHAR(2000)   NULL,
+                    EstimatedReadyAt    DATETIMEOFFSET   NULL,
+                    ReadyNotifiedAt     DATETIMEOFFSET   NULL,
+                    CollectedAt         DATETIMEOFFSET   NULL,
+                    CancelledAt         DATETIMEOFFSET   NULL,
+                    CancellationReason  NVARCHAR(500)    NULL,
+                    CreatedAt           DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    UpdatedAt           DATETIMEOFFSET   NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_Orders PRIMARY KEY (Id),
+                    CONSTRAINT UQ_Orders_OrderNumber UNIQUE (OrderNumber),
+                    CONSTRAINT FK_Orders_ClientId FOREIGN KEY (ClientId) REFERENCES dbo.Clients(Id),
+                    CONSTRAINT CK_Orders_Status CHECK (Status IN ('pending','ready','collected','cancelled'))
+                );
+                CREATE INDEX IX_Orders_ClientId ON dbo.Orders (ClientId);
+                CREATE INDEX IX_Orders_Status ON dbo.Orders (Status);
+                CREATE INDEX IX_Orders_CreatedAt ON dbo.Orders (CreatedAt DESC);
+                CREATE INDEX IX_Orders_OrderNumber ON dbo.Orders (OrderNumber);
+            END
+            """),
+
+        ("018_OrderItems", """
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'OrderItems' AND schema_id = SCHEMA_ID('dbo'))
+            BEGIN
+                CREATE TABLE dbo.OrderItems (
+                    Id                  UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                    OrderId             UNIQUEIDENTIFIER NOT NULL,
+                    TenantProductId     UNIQUEIDENTIFIER NOT NULL,
+                    ProductName         NVARCHAR(200)    NOT NULL,
+                    Quantity            INT              NOT NULL,
+                    UnitPrice           DECIMAL(10,2)    NOT NULL,
+                    Subtotal            DECIMAL(10,2)    NOT NULL,
+                    CONSTRAINT PK_OrderItems PRIMARY KEY (Id),
+                    CONSTRAINT FK_OrderItems_OrderId FOREIGN KEY (OrderId) REFERENCES dbo.Orders(Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_OrderItems_TenantProductId FOREIGN KEY (TenantProductId) REFERENCES dbo.TenantProducts(Id),
+                    CONSTRAINT CK_OrderItems_Quantity CHECK (Quantity > 0)
+                );
+                CREATE INDEX IX_OrderItems_OrderId ON dbo.OrderItems (OrderId);
+                CREATE INDEX IX_OrderItems_TenantProductId ON dbo.OrderItems (TenantProductId);
+            END
             """)
     ];
 }

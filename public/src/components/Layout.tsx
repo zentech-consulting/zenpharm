@@ -1,9 +1,12 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
+import { ShoppingCart } from 'lucide-react'
 import AiConsultant from '../features/ai-chat/AiConsultant'
+import { useCart } from '../contexts/CartContext'
 
 const navLinks = [
   { to: '/', label: 'Home' },
+  { to: '/shop', label: 'Shop' },
   { to: '/services', label: 'Services' },
   { to: '/pricing', label: 'Pricing' },
   { to: '/about', label: 'About' },
@@ -12,6 +15,7 @@ const navLinks = [
 
 export default function Layout() {
   const { pathname } = useLocation()
+  const { itemCount } = useCart()
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -24,20 +28,32 @@ export default function Layout() {
           <Link to="/" className="text-xl font-bold text-primary">
             ZenPharm
           </Link>
-          <ul className="flex gap-6">
-            {navLinks.map((link) => (
-              <li key={link.to}>
-                <Link
-                  to={link.to}
-                  className={`text-sm font-medium transition-colors hover:text-highlight ${
-                    pathname === link.to ? 'text-highlight' : 'text-primary'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <div className="flex items-center gap-6">
+            <ul className="flex gap-6">
+              {navLinks.map((link) => (
+                <li key={link.to}>
+                  <Link
+                    to={link.to}
+                    className={`text-sm font-medium transition-colors hover:text-highlight ${
+                      pathname === link.to || (link.to === '/shop' && pathname.startsWith('/shop'))
+                        ? 'text-highlight'
+                        : 'text-primary'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link to="/cart" className="relative text-primary transition-colors hover:text-highlight">
+              <ShoppingCart size={22} />
+              {itemCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-highlight text-[10px] font-bold text-white">
+                  {itemCount > 99 ? '99+' : itemCount}
+                </span>
+              )}
+            </Link>
+          </div>
         </nav>
       </header>
 
