@@ -25,7 +25,7 @@ jobs:
         run: dotnet build api --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test api/api.tests --no-build --configuration Release --verbosity normal
+        run: dotnet test api/api.tests --configuration Release --verbosity normal
 
   admin:
     name: Admin Frontend — Build
