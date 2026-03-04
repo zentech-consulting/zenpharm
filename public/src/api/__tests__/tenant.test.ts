@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
 // We test the pure logic by re-implementing detectSubdomain's internal algorithm
 // since it accesses window.location and import.meta.env directly.
@@ -22,10 +22,8 @@ describe('detectSubdomain logic', () => {
     vi.unstubAllEnvs()
   })
 
-  it('returns null for localhost', async () => {
+  it('returns null for localhost', () => {
     mockHostname('localhost')
-    const { detectSubdomain } = await import('../tenant')
-    // Re-import won't help due to module caching, so test the logic inline
     expect(detectSubdomainFrom('localhost')).toBeNull()
   })
 

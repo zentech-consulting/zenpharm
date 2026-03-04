@@ -17,7 +17,7 @@ internal sealed class BrandingManager(
                 t.Tagline, t.ContactEmail, t.ContactPhone,
                 t.Abn, t.AddressLine1, t.AddressLine2, t.Suburb, t.State, t.Postcode,
                 t.BusinessHoursJson,
-                COALESCE(s.PlanName, 'Free') AS Plan
+                COALESCE(s.PlanName, 'Free') AS [Plan]
             FROM dbo.Tenants t
             LEFT JOIN dbo.Subscriptions s ON s.TenantId = t.Id AND s.Status = 'Active'
             WHERE t.Id = @TenantId AND t.Status = 'Active';

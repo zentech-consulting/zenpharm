@@ -16,7 +16,7 @@ internal sealed partial class TenantMiddleware(
         new(StringComparer.OrdinalIgnoreCase) { "www", "api", "admin", "mail", "ftp" };
 
     private static readonly string[] BypassPrefixes =
-        ["/health", "/swagger", "/api/platform"];
+        ["/health", "/swagger", "/api/platform", "/api/webhooks", "/api/signup"];
 
     [GeneratedRegex(@"^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?$", RegexOptions.IgnoreCase)]
     private static partial Regex SubdomainPattern();

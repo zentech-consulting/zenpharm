@@ -9,9 +9,16 @@ public sealed record ProvisionRequest(
     string TenantName,
     string Subdomain,
     string AdminEmail,
-    string? Plan);
+    string? Plan,
+    string? AdminFullName = null,
+    Guid? PlanId = null,
+    string? BillingPeriod = "Monthly",
+    string? StripeCustomerId = null,
+    string? StripeSubscriptionId = null,
+    string? TemplatePack = null);
 
 public sealed record ProvisionResult(
     bool Success,
     string? TenantId,
-    string? Message);
+    string? Message,
+    string? AdminPassword = null);

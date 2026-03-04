@@ -64,7 +64,7 @@ const plans: PlanProps[] = [
       'Email support',
     ],
     cta: 'Get Started',
-    ctaLink: '/contact',
+    ctaLink: '/signup?plan=Basic',
   },
   {
     name: 'Premium',
@@ -83,7 +83,7 @@ const plans: PlanProps[] = [
       'Priority support',
     ],
     cta: 'Get Started',
-    ctaLink: '/contact',
+    ctaLink: '/signup?plan=Premium',
   },
   {
     name: 'Enterprise',
